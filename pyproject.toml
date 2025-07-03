@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp4cm"
+version = "1.0.2"
+description = "A conceptual models dataset cleaning and preprocessing library"
+authors = [
+    {name = "Andjela Djelic", email = "andjela.djelic@tuwien.ac.at"},
+    {name = "Syed Juned Ali", email = "syed.juned.ali@tuwien.ac.at"}
+]
+
+dependencies = [
+    "annotated-types==0.7.0",
+    "contourpy==1.3.1",
+    "cycler==0.12.1",
+    "fonttools==4.56.0",
+    "joblib==1.4.2",
+    "kiwisolver==1.4.8",
+    "langdetect==1.0.9",
+    "matplotlib==3.10.1",
+    "numpy==2.2.4",
+    "packaging==24.2",
+    "pandas==2.2.3",
+    "pillow==11.1.0",
+    "pydantic==2.11.1",
+    "pydantic-core==2.33.0",
+    "pyparsing==3.2.3",
+    "python-dateutil==2.9.0.post0",
+    "pytz==2025.2",
+    "scikit-learn==1.6.1",
+    "scipy==1.15.2",
+    "seaborn==0.13.2",
+    "six==1.17.0",
+    "threadpoolctl==3.6.0",
+    "typing-extensions==4.13.0",
+    "typing-inspection==0.4.0",
+    "tzdata==2025.2"
+]
+
+dynamic = ["readme"]
+license = {file = "LICENSE"}
+requires-python = ">=3.8"
+
+[project.optional-dependencies]
+dev = ["pytest", "black"]
+
+[tool.setuptools.dynamic]
+readme = {file = "README.md", content-type = "text/markdown"}
+
+[tool.setuptools]
+license-files = ["LICENSE"]
+
+[project.urls]
+Homepage = "https://github.com/borkdominik/model-cleansing"
+Issues = "https://github.com/borkdominik/model-cleansing/issues"

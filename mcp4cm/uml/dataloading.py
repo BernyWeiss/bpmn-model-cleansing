@@ -8,7 +8,6 @@ import pandas as pd
 from mcp4cm.base import Dataset, Model
 
 
-
 class UMLModel(Model):
     """
     Class representing a UML model.
@@ -38,6 +37,19 @@ class UMLDataset(Dataset):
         models (List[UMLModel]): List of UML models in the dataset.
     """
     models: List[UMLModel]
+
+    def __getitem__(self, index: int) -> UMLModel:
+        """
+        Get a UML model by index.
+        
+        Args:
+            index (int): Index of the model to retrieve.
+        
+        Returns:
+            UMLModel: The UML model at the specified index.
+        """
+        return self.models[index]
+    
     
 
 def load_dataset(
@@ -153,18 +165,19 @@ def load_dataset(
     analysis_df_stats_pivot = analysis_df_stats_pivot.reset_index(drop=True)
     
     merged_df = pd.merge(analysis_df_stats_pivot, uml_df_metadata[['id', 'category', 'tags']], on='id', how='left')
-    
+    # print(merged_df.shape)
     if language_csv_path:
         language_df = pd.read_csv(language_csv_path)
         merged_df = merged_df.merge(language_df[['id', 'language']], on='id', how='left')
 
+    
     data_prefix = 'repo-genmymodel-uml/data'
     graph_data_dir_path = os.path.join(dataset_path, 'graph', data_prefix)
     xmi_data_dir_path = os.path.join(dataset_path, 'raw-data', data_prefix)
     text_data_dir_path = os.path.join(dataset_path, 'txt', data_prefix)
     
     models = list()
-    for _, i in tqdm(uml_df_metadata.iterrows(), total=uml_df_metadata.shape[0], desc="Loading models"):
+    for _, i in tqdm(uml_df_metadata.iterrows(), total=uml_df_metadata.shape[0], desc="Loading UML models"):
         model_id = i['id'].split('/')[-1]
         model_name = model_id.split('.xmi')[0]
         json_data = json.load(open(os.path.join(graph_data_dir_path, model_id, f"{model_name}.json"), encoding='utf-8'))
@@ -185,6 +198,7 @@ def load_dataset(
         
         model_hash = analysis_df_models.loc[analysis_df_models['id'] == i['id'], 'hash'].values[0]
         fp = analysis_df_models.loc[analysis_df_models['id'] == i['id'], 'relative_file'].values[0]
+        language = language_df.loc[language_df['id'] == i['id'], 'language'].values[0]
         model = UMLModel(
             id=model_id,
             file_path=fp,
@@ -194,12 +208,13 @@ def load_dataset(
             model_txt=text_data,
             category=i['category'],
             tags=i['tags'] if not isinstance(i['tags'], float) else None,
-            diagram_types=diagram_type
+            diagram_types=diagram_type,
+            language=language,
         )
         
         models.append(model)
     
-    dataset = Dataset(
+    dataset = UMLDataset(
         name='modelset',
         models=models
     )

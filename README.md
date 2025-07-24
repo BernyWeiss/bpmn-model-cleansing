@@ -13,6 +13,64 @@
 
 ## Usage
 
+To use the `mcp4cm` library, follow these steps:
+
+### Create a virtual environment
+
+
+```bash/powershell
+virutalenv .venv
+source .venv/bin/activate
+```
+
+### Install the required packages
+After creating the virtual environment, you need to install the required packages. You can do this by running the following command:
+
+```bash
+pip install -r requirements.txt
+```
+
+### Downloading the data
+To use the library, you need to download the datasets. The datasets are not included in the repository due to their size. You can download the zip file of the datasets them from the following drive link:
+- MCP4CM Dataset: [MCP4CM Datasets](https://drive.google.com/file/d/1ZSTQvsim_sCX76qfx86Df3bHDtFM7tR0/view?usp=sharing)
+
+- Unzip the data folder in the root directory of the repository. 
+
+```
+unzip data.zip
+```
+
+The structure should look like this:
+```
+mcp4cm/
+├── data/                          # Datasets used in the library
+│   ├── modelset/                 # UML dataset
+│   └── eamodelset/              # ArchiMate dataset
+│
+├── dataset_generation.ipynb      # Notebook to generate datasets for reproducibility
+├── test_mcp4cm.ipynb             # Notebook to test library functionalities
+│
+├── README.md
+├── Artefact_Eval_Updated_Readme.md ## Due to inability to upload updated documents in easychair, we provide the updated overall artefact readme documentation here.
+├── Artefact_Eval_Updated_Status.md ## Due to inability to upload updated documents in easychair, we provide the updated artefact status documentation here.
+├── requirements.txt
+├── LICENSE
+
+
+## Generating dataset for the reproducibility studies given here - 
+Publicly archived on Zenodo [10.5281/zenodo.16285770] (https://zenodo.org/records/16285770)
+
+The dataset_generation.ipynb notebook provides a way to generate the datasets used in the reproducibility studies. 
+The notebook provides a step-by-step filtering to generate the datasets for modelset dataset to be used for the reproducibility study.
+Given that the library was developed after the dataset was generated, to provide evidence for reusability of the library, the jupyter notebook provides model filtering code snippets that show how using the library gives the same results as the 'without-library-code' dataset generation code snippets.
+
+In the dataset_generation.ipynb notebook, you will find cells that validate the consistency of the results obtained using the library with those obtained without it. These cells are marked with comments indicating the consistency checks.
+
+## Testing the Library
+You can test the library in the jupyter notebook - test_mcp4cm.ipynb. This notebook contains examples of how to use the library for dataset loading, filtering, data extraction, and deduplication.
+
+## Usage
+
 ### Dataset Loading
 
 ```python

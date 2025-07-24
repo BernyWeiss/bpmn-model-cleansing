@@ -22,12 +22,14 @@ class Model(BaseModel):
     id: str
     file_path: str
     hash: str
+    language: Optional[str] = None
     model_json: Optional[Union[List, Dict]] = None
     model_xmi: Optional[str] = None
     model_txt: Optional[str] = None
     names: Optional[List[str]] = None
     category: Optional[str] = None
     tags: Optional[List[str]] = None
+    
     
     def __str__(self) -> str:
         """
@@ -42,6 +44,7 @@ class Model(BaseModel):
         names_str = f"names={len(self.names)}" if self.names else ""
         
         return f"Model({names_str}{category_str} {tags_str})"
+
 
     def __repr__(self) -> str:
         """
@@ -85,6 +88,81 @@ class Dataset(BaseModel):
         return self.models[index]
 
 
+    def __len__(self) -> int:
+        """
+        Get the number of models in the dataset.
+        
+        Returns:
+            int: Number of models in the dataset.
+        """
+        return len(self.models)
+    
+    
+    def __str__(self) -> str:
+        """
+        String representation of the dataset.
+        
+        Returns:
+            str: Name of the dataset and number of models it contains.
+        """
+        return f"Dataset(name={self.name}, models={len(self.models)})"
+
+
+    def __repr__(self) -> str:
+        """
+        String representation of the dataset for debugging.
+        
+        Returns:
+            str: Name of the dataset and number of models it contains.
+        """
+        return f"Dataset(name={self.name}, models={len(self.models)})"
+
+
+    def __iter__(self):
+        """
+        Iterate over the models in the dataset.
+        
+        Yields:
+            Model: Each model in the dataset.
+        """
+        return iter(self.models)
+
+    @staticmethod
+    def apply_filters(dataset, filters: List[callable], verbose=False) -> 'Dataset':
+        """
+        Apply a list of filters to the dataset.
+        
+        Args:
+            filters (List[callable]): List of filter functions to apply.
+        
+        Returns:
+            Dataset: A new dataset containing only models that pass all filters
+        """
+        for filter_func in filters:
+            if verbose:
+                print(f"Applying filter: {filter_func.__name__}")
+                print("Before filter:", len(dataset))
+            
+            filter_func(dataset, inplace=True)
+            if verbose:
+                print("After filter:", len(dataset))
+        
+        return dataset
+    
+    @staticmethod
+    def to_csv(dataset: 'Dataset', fp: str):
+        """
+        Save the dataset to a CSV file.
+        
+        Args:
+            fp (str): File path to save the CSV.
+        """
+        import pandas as pd
+        
+        data = [model.model_dump() for model in dataset.models]
+        df = pd.DataFrame(data)
+        df.to_csv(fp, index=False)
+    
 
 class DatasetType(Enum):
     """

@@ -1,6 +1,6 @@
 from mcp4cm.uml.dataloading import load_dataset as load_uml_dataset
 from mcp4cm.archimate.dataloading import load_dataset as load_archimate_dataset
-from mcp4cm.base import DatasetType
+from mcp4cm.base import DatasetType, Dataset
 
 
 def load_dataset(
@@ -8,7 +8,7 @@ def load_dataset(
     path: str = 'data/modelset',
     uml_type: str = 'genmymodel',
     language_csv_path: str = 'categories_uml.csv'
-):
+) -> Dataset:
     """
     Load a dataset based on the dataset type and path.
     

@@ -38,7 +38,15 @@ def get_hash_str(string):
 
 
 def load_dataset(dataset_dir: str) -> ArchimateDataset:
-
+    """
+    Load the ArchiMate dataset from the specified directory.
+    This function reads ArchiMate model files from a dataset directory, processes them, and returns an ArchimateDataset object.
+    Args:
+        dataset_dir (str): Path to the dataset directory.
+    Returns:
+        ArchimateDataset: The loaded dataset containing ArchiMate models.
+    """
+    
     data_path = os.path.join(dataset_dir, 'processed-models')
     model_dirs = os.listdir(data_path)
     models = list()

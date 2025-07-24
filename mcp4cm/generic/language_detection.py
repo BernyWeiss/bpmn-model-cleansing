@@ -5,7 +5,7 @@ from mcp4cm.base import Dataset, Model
 from mcp4cm.generic.utils import get_model_text
 
 
-def process_file(model: Model, key: str) -> str:
+def get_model_language(model: Model, key: str = 'names') -> str:
     """
     Process a single model to detect its language.
     
@@ -19,6 +19,9 @@ def process_file(model: Model, key: str) -> str:
         str: ISO 639-1 language code (e.g., 'en' for English, 'fr' for French),
              or None if the model has no text content or detection fails.
     """
+    if model.language is not None:
+        return model.language
+    
     text = get_model_text(model, key)
     if text and text.strip():  # Ensure it's not empty or whitespace
         return detect(text)
@@ -47,7 +50,7 @@ def detect_dataset_languages(dataset: Dataset, key: str = 'names') -> dict:
     language_dict = defaultdict(list)
     
     for model in dataset.models:
-        lang = process_file(model, key)
+        lang = get_model_language(model, key)
         if lang:
             language_dict[lang].append(model)
     
@@ -56,6 +59,7 @@ def detect_dataset_languages(dataset: Dataset, key: str = 'names') -> dict:
         print(f"Language: {lang}, Count: {len(models)}")
     
     return language_dict
+
 
 def extract_non_english_models(dataset: Dataset) -> Dataset:
     """
@@ -80,9 +84,30 @@ def extract_non_english_models(dataset: Dataset) -> Dataset:
     for model in dataset.models:
         if model.model_txt is None:
             continue
-        lang = process_file(model)
+        lang = get_model_language(model)
         if lang and lang != 'en':
             non_english_models.append(model)
     
     return Dataset(name=dataset.name, models=non_english_models)
 
+
+def filter_models_by_language(dataset: Dataset, language: str, key: str = 'names') -> Dataset:
+    """
+    Filter models in the dataset by a specific language.
+    
+    This function returns a new dataset containing only models that match
+    the specified language code.
+    
+    Args:
+        dataset (UMLDataset): The dataset containing UML models.
+        language (str): The ISO 639-1 language code to filter by (e.g., 'en', 'fr').
+    
+    Returns:
+        UMLDataset: A new dataset containing only models in the specified language.
+        
+    Example:
+        >>> english_models = filter_models_by_language(dataset, 'en')
+        >>> print(f"Found {len(english_models.models)} English models")
+    """
+    filtered_models = [model for model in dataset.models if get_model_language(model, key) == language]
+    return Dataset(name=dataset.name, models=filtered_models)

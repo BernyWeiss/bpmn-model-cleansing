@@ -59,7 +59,6 @@ def detect_duplicates_by_hash(
     """
     
     hash_dict = {}
-    duplicate_groups = []
     unique_files = []
     duplicate_files = []
     
@@ -67,37 +66,43 @@ def detect_duplicates_by_hash(
     
     start_time = time.time()
     for model in dataset.models:
-        content = get_model_text(model, key)
+        if key in ['names', 'names_with_types']:
+            content = "\n".join(model.names_with_types if hasattr(model, 'names_with_types') else model.names) + "\n"
+        else:
+            content = get_model_text(model, key) + "\n"
+            
         file_hash = hash_function(content)
         if file_hash is not None:
-            if file_hash in hash_dict:
-                duplicate_groups.append((hash_dict[file_hash], model))
-                duplicate_files.append(model)
-            else:
-                hash_dict[file_hash] = model
-                unique_files.append(model)
+            if file_hash not in hash_dict:
+                hash_dict[file_hash] = list()
+                
+            hash_dict[file_hash].append(model.file_path)
+            # print(model.file_path, file_hash)  # Print the file path and its hash for debugging
+    
+    duplicate_files = {h: files for h, files in hash_dict.items() if len(files) > 1}
+    unique_files = {h: files[0] for h, files in hash_dict.items() if len(files) == 1}
+    
     
     end_time = time.time()
     print(f"Hashing and duplicate detection took {end_time - start_time:.2f} seconds.")
-    print(f"Total files processed: {len(dataset.models)}")
+    print(f"Total files processed: {len(dataset)}")
     print(f"Total unique files: {len(unique_files)}")
-    print(f"Total duplicate files: {len(duplicate_files)}")
-    print(f"Duplicate groups: {len(duplicate_groups)}")
+    print(f"Total duplicate files: {len(dataset) - len(unique_files)}")
+    print(f"Duplicate groups: {len(duplicate_files)}")
+    
     
     if inplace:
         dataset.models = unique_files
     
     if plt_fig:
         labels = ['Unique Files', 'Duplicate Files']
-        sizes = [len(unique_files), len(duplicate_files)]
+        sizes = [len(unique_files), len(dataset) - len(unique_files)]
         colors = ['green', 'red']
 
         plt.figure(figsize=(6, 6))
         plt.pie(sizes, labels=labels, autopct='%1.1f%%', colors=colors, startangle=140)
         plt.title("Proportion of Unique vs. Duplicate Files")
         plt.show()
-    
-    return unique_files, duplicate_groups
 
 
 def tfidf_near_duplicate_detector(
@@ -134,7 +139,14 @@ def tfidf_near_duplicate_detector(
     
     # Extract the text content from the models
     start_time = time.time()
-    text_data = [get_model_text(model, key) for model in dataset.models if getattr(model, key) is not None]
+    text_data = list()
+    for model in dataset:
+        if key in ['names', 'names_with_types']:
+            content = "\n".join(model.names_with_types if hasattr(model, 'names_with_types') else model.names) + "\n"
+        else:
+            content = get_model_text(model, key) + "\n"
+        text_data.append(content)
+        
     print(f"Extracted text data from {len(text_data)} models.")
     # Vectorize the text data using TF-IDF
     vectorizer = TfidfVectorizer()

@@ -7,6 +7,8 @@ from csv import reader
 from typing import Optional, List, Dict
 from enum import Enum
 
+import pandas as pd
+from pydantic import ValidationError
 from tqdm.auto import tqdm
 
 import sapsam.parser
@@ -57,6 +59,17 @@ class BPMNDataset(Dataset):
             UMLModel: The UML model at the specified index.
         """
         return self.models[index]
+
+    @staticmethod
+    def from_csv(file_path: str, model_name: str) -> 'BPMNDataset':
+        df = pd.read_csv(file_path)
+        models = []
+        for df_record in df.to_dict('records'):
+            model = BPMNModel.model_construct(**df_record)
+            models.append(model)
+
+        return BPMNDataset(name=model_name, models=models)
+
 
 class Namespaces(Enum):
     """

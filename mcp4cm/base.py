@@ -162,6 +162,7 @@ class Dataset(BaseModel):
         data = [model.model_dump() for model in dataset.models]
         df = pd.DataFrame(data)
         df.to_csv(fp, index=False)
+
     
 
 class DatasetType(Enum):
@@ -172,6 +173,8 @@ class DatasetType(Enum):
     by the library. Currently supports:
     
     - MODELSET: Standard model dataset format
+    - BPMN: BPMN dataset format
     """
     MODELSET = "modelset"
     EAMODELSET = "eamodelset"
+    BPMNMODELSET = "bpmnmodelset"

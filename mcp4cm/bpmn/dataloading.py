@@ -9,14 +9,16 @@ from enum import Enum
 
 import pandas as pd
 from pydantic import ValidationError
+
 from tqdm.auto import tqdm
 
 import sapsam.parser
 from mcp4cm.base import Model, Dataset
 from mcp4cm.bpmn.data_extraction import extract_names_from_model
+from mcp4cm.bpmn.json_model import Shape
 
 SAM_MODELS_PATH = 'sap_sam_2022/models'
-PROCESSED_MODELS_PATH = 'processed'
+PROCESSED_MODELS_PATH = 'processed/reduced'
 CSV_FIELD_SIZE_LIMIT = 6000000
 
 
@@ -82,6 +84,13 @@ class Namespaces(Enum):
     BPMN2 = 'http://b3mn.org/stencilset/bpmn2.0#'
 
 
+
+class BPMNModelShape:
+    resourceId: str
+    stencil: dict
+
+
+
 def load_dataset(
         dataset_path: str = 'bpmnmodelset/raw/sap_sam_2022',
         namespace: Namespaces = Namespaces.BPMN2,
@@ -116,30 +125,35 @@ def load_dataset(
                     if raw_model['Namespace'] != namespace.value:
                         continue
                     id = raw_model['Model ID']
+                    model_name = raw_model['Name']
+
                     file_path = os.path.join(data_path, models_file)
 
-                    model_json = json.loads(raw_model['Model JSON'])
+                    full_json = json.loads(raw_model['Model JSON'])
+                    raw_json_model = Shape(**full_json)
+                    #print(f'Loaded {model_name} from {file_path} sucessfully')
 
-                    model_name = raw_model['Name']
+                    small_json = raw_json_model.model_dump(exclude_unset=True)
+
                     hash = hashlib.sha256(raw_model['Model JSON'].encode()).hexdigest()
 
-                    language = model_json['properties']['language'] if 'language' in model_json['properties'].keys()  else None
+                    language = small_json['properties']['language'] if 'language' in small_json['properties'].keys()  else None
 
                     model = BPMNModel(
                         id = id,
                         name = model_name,
                         file_path = file_path,
-                        model_json=model_json,
+                        model_json=small_json,
                         language=language,
                         hash=hash
                     )
-                    model = extract_names_from_model(model, use_types=False)
 
                     models.append(model)
                 dataset = BPMNDataset(name = dataset_name, models = models)
                 processed_path = os.path.join(dataset_path, PROCESSED_MODELS_PATH, models_file)
                 BPMNDataset.to_csv(dataset, fp=processed_path)
                 path_strings.append(processed_path)
+
 
 
     return path_strings

@@ -1,5 +1,7 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Any
+
+import json
 
 
 class Stensil(BaseModel):
@@ -23,3 +25,8 @@ class Shape(BaseModel):
     outgoing: Optional[List[ShapeReference]] = []
 
 
+def reduce_json_model(jsonstring: str) -> dict[str, Any]:
+    full_json = json.loads(jsonstring)
+    raw_json_model = Shape(**full_json)
+    small_json = raw_json_model.model_dump_json(exclude_unset=True)
+    return small_json

@@ -1,21 +1,16 @@
-import csv
-import hashlib
-import json
+
 import os
-from collections import deque
-from csv import reader
-from typing import Optional, List, Dict
+from typing import Optional, List
 from enum import Enum
 
 import pandas as pd
-from pydantic import ValidationError
+from pydantic import field_validator
 
 from tqdm.auto import tqdm
 
-import sapsam.parser
 from mcp4cm.base import Model, Dataset
-from mcp4cm.bpmn.data_extraction import extract_names_from_model
-from mcp4cm.bpmn.json_model import Shape
+from mcp4cm.bpmn.data_extraction import compute_hash_of_modeldict
+from mcp4cm.bpmn.json_model import reduce_json_model
 
 SAM_MODELS_PATH = 'sap_sam_2022/models'
 PROCESSED_MODELS_PATH = 'processed/reduced'
@@ -48,11 +43,26 @@ class BPMNDataset(Dataset):
     Attributes:
         models (List[BPMNModel]): List of BPMN models in the dataset.
     """
-    models: List[BPMNModel]
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
+    models: pd.DataFrame
+
+    @field_validator("models", mode="before")
+    def convert_to_df(cls, models: List['BPMNModel'] | pd.DataFrame) -> pd.DataFrame:
+        if isinstance(models, list):
+            return pd.DataFrame([model.model_dump() if isinstance(model, BPMNModel) else model for model in models])
+        if isinstance(models, pd.DataFrame):
+            return models
+        raise TypeError("Items must be a list of BPMNModels or a pd.DataFrame")
+
+
 
     def __getitem__(self, index: int) -> BPMNModel:
         """
-        Get a UML model by index.
+        Get a BPMNModel by index.
 
         Args:
             index (int): Index of the model to retrieve.
@@ -60,20 +70,16 @@ class BPMNDataset(Dataset):
         Returns:
             UMLModel: The UML model at the specified index.
         """
-        return self.models[index]
+        model = BPMNModel.model_validate(self.models.iloc[index])
+        return model
 
     @staticmethod
-    def from_csv(file_path: str, model_name: str) -> 'BPMNDataset':
-        df = pd.read_csv(file_path)
-        models = []
-        for df_record in df.to_dict('records'):
-            model = BPMNModel.model_construct(**df_record)
-            models.append(model)
-
-        return BPMNDataset(name=model_name, models=models)
+    def to_csv(dataset: 'BPMNDataset', fp: str):
+        dataset.models.to_csv(fp, index=False)
 
 
-class Namespaces(Enum):
+
+class SapSam2022Namespaces(Enum):
     """
     Enum for different Namespaces in the sap_sam_2022 dataset.
 
@@ -84,77 +90,63 @@ class Namespaces(Enum):
     BPMN2 = 'http://b3mn.org/stencilset/bpmn2.0#'
 
 
-
-class BPMNModelShape:
-    resourceId: str
-    stencil: dict
-
+def load_dataset_from_csv(name: str, fp: str)-> BPMNDataset:
+    models = pd.read_csv(fp)
+    return BPMNDataset(name=name, models=models)
 
 
 def load_dataset(
-        dataset_path: str = 'bpmnmodelset/raw/sap_sam_2022',
-        namespace: Namespaces = Namespaces.BPMN2,
-) -> List[str]:
+        dataset_path: str = 'data/bpmnmodelset',
+        namespace: SapSam2022Namespaces = SapSam2022Namespaces.BPMN2
+) -> BPMNDataset:
     """
-    Load the sap_sam_2022 dataset.
-    This function parses the models from the sap_sam_2022 csv files. It processes all models with the given namespace.
-    It returns a BPMNDataset object.
-
 
     Args:
-        dataset_path: path to the folder where the dataset is stored.
-        namespace: Namespace of models to load.
+        dataset_path:
+        namespace:
 
     Returns:
-        LIST[str]: List of strings with the paths to the created datasets.
 
     """
-    data_path = os.path.join(dataset_path, SAM_MODELS_PATH)
-    path_strings = list()
+    dataset_path = os.path.join(dataset_path, SAM_MODELS_PATH)
+    full_dataset = None
+    for model_file in tqdm(os.listdir(dataset_path), desc=f'Loading SAP SAM Dataset @ {dataset_path}'):
+        if not model_file.endswith('.csv'):
+            continue
 
-    # TODO: Make this loading possible for all data or lazy
-    for models_file in tqdm(os.listdir(data_path), desc=f'Loading SAP SAM Dataset @ {data_path}'):
-        if models_file.endswith('.csv'):
-            dataset_name= f'BPMN2 models {models_file}'
-            models: List[BPMNModel] = list()
-            with open (f'{data_path}/{models_file}', encoding='utf-8') as csv_file:
-                csv.field_size_limit(CSV_FIELD_SIZE_LIMIT)
-                reader = csv.DictReader(csv_file, delimiter=',')
+        partial_df = pd.read_csv(os.path.join(dataset_path, model_file), dtype={"Namespace": "category"})
 
-                for raw_model in reader:
-                    if raw_model['Namespace'] != namespace.value:
-                        continue
-                    id = raw_model['Model ID']
-                    model_name = raw_model['Name']
+        model_type = namespace.value
 
-                    file_path = os.path.join(data_path, models_file)
+        partial_df.query(f'Namespace =="{model_type}"', inplace=True)
+        partial_df.drop(columns=['Revision ID', 'Organization ID', 'Datetime', 'Description', 'Type', 'Namespace'],inplace=True)
+        partial_df.rename(columns={'Model ID': 'id', 'Name': 'name'}, inplace=True)
+        partial_df.set_index('id', inplace=True)
 
-                    full_json = json.loads(raw_model['Model JSON'])
-                    raw_json_model = Shape(**full_json)
-                    #print(f'Loaded {model_name} from {file_path} sucessfully')
+        partial_df['model_json'] = partial_df['Model JSON'].apply(reduce_json_model)
+        partial_df.drop(columns=['Model JSON'], inplace=True)
 
-                    small_json = raw_json_model.model_dump(exclude_unset=True)
+        partial_df['file_path'] = os.path.join(dataset_path,model_file)
+        partial_df['hash'] = partial_df['model_json'].apply(compute_hash_of_modeldict)
 
-                    hash = hashlib.sha256(raw_model['Model JSON'].encode()).hexdigest()
+        partial_df['language'] = None
+        partial_df['names'] = None
+        partial_df['names_with_types'] = None
+        partial_df['model_xmi'] = None
+        partial_df['model_txt'] = None
+        partial_df['category'] = None
+        partial_df['tags'] = None
 
-                    language = small_json['properties']['language'] if 'language' in small_json['properties'].keys()  else None
+        if full_dataset is None:
+            full_dataset = partial_df
+        else:
+            full_dataset = pd.concat([full_dataset, partial_df])
+        break
 
-                    model = BPMNModel(
-                        id = id,
-                        name = model_name,
-                        file_path = file_path,
-                        model_json=small_json,
-                        language=language,
-                        hash=hash
-                    )
+    full_dataset.reset_index(drop=False, inplace=True, names='id')
+    full_dataset.fillna({'name':''}, inplace=True)
 
-                    models.append(model)
-                dataset = BPMNDataset(name = dataset_name, models = models)
-                processed_path = os.path.join(dataset_path, PROCESSED_MODELS_PATH, models_file)
-                BPMNDataset.to_csv(dataset, fp=processed_path)
-                path_strings.append(processed_path)
+    bpmn2_dataset = BPMNDataset(name="sapsam_2022_bpmn2", models=full_dataset)
+    return bpmn2_dataset
 
-
-
-    return path_strings
 

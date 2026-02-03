@@ -33,7 +33,7 @@ def extract_names_from_models(dataset: 'BPMNDataset',
 def _extract_names_from_shape(model_json_string: str,
                               use_types: bool = False,
                               empty_name_pattern: str = "empty name") -> list[str]:
-
+    # TODO: Continue to with Dict/List type instead of str
     bpmn_model_shape = Shape(**json.loads(model_json_string))
     names = list()
     names_with_types = list()

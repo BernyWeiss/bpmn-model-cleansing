@@ -1,4 +1,5 @@
-
+import ast
+import json
 import os
 from typing import Optional, List
 from enum import Enum
@@ -10,7 +11,7 @@ from tqdm.auto import tqdm
 
 from mcp4cm.base import Model, Dataset
 from mcp4cm.bpmn.data_extraction import compute_hash_of_modeldict
-from mcp4cm.bpmn.json_model import reduce_json_model
+from mcp4cm.bpmn.json_model import reduce_json_model, Shape
 
 SAM_MODELS_PATH = 'sap_sam_2022/models'
 PROCESSED_MODELS_PATH = 'processed/reduced'
@@ -32,6 +33,12 @@ class BPMNModel(Model):
     name: Optional[str] = None
     names_with_types: Optional[List[str]] = None
 
+    def __repr__(self):
+        return f"({self.name}, {self.file_path})"
+
+    def __str__(self):
+        return f"({self.name}, {self.file_path})"
+
 
 class BPMNDataset(Dataset):
     """
@@ -47,8 +54,7 @@ class BPMNDataset(Dataset):
     class Config:
         arbitrary_types_allowed = True
 
-
-    models: pd.DataFrame
+    models: pd.DataFrame  # TODO: Writer proper init with column names of model to represent empty model correctly.
 
     @field_validator("models", mode="before")
     def convert_to_df(cls, models: List['BPMNModel'] | pd.DataFrame) -> pd.DataFrame:
@@ -57,8 +63,6 @@ class BPMNDataset(Dataset):
         if isinstance(models, pd.DataFrame):
             return models
         raise TypeError("Items must be a list of BPMNModels or a pd.DataFrame")
-
-
 
     def __getitem__(self, index: int) -> BPMNModel:
         """
@@ -73,10 +77,18 @@ class BPMNDataset(Dataset):
         model = BPMNModel.model_validate(self.models.iloc[index])
         return model
 
+    def __iter__(self):
+        columns = list(self.models.columns)
+        for df_row in self.models.itertuples(index=False, name=None):
+            model_dict = dict(zip(columns, df_row))
+            yield BPMNModel.model_validate(model_dict)
+
     @staticmethod
     def to_csv(dataset: 'BPMNDataset', fp: str):
-        dataset.models.to_csv(fp, index=False)
-
+        models_json_series = dataset.models["model_json"].apply(lambda model: json.dumps(model) if model is not None else None)
+        models_copy = dataset.models.copy(deep=False)
+        models_copy['model_json'] = models_json_series
+        models_copy.to_csv(fp, index=False)
 
 
 class SapSam2022Namespaces(Enum):
@@ -90,8 +102,15 @@ class SapSam2022Namespaces(Enum):
     BPMN2 = 'http://b3mn.org/stencilset/bpmn2.0#'
 
 
-def load_dataset_from_csv(name: str, fp: str)-> BPMNDataset:
-    models = pd.read_csv(fp)
+def load_dataset_from_csv(name: str, fp: str) -> BPMNDataset:
+    #models = pd.read_csv(fp, na_filter=False, converters={
+    #    "model_json": lambda x: eval(x, {"__builtins__": None}, {}) if x else None
+    #})
+
+    models = pd.read_csv(fp, na_filter=False, converters={
+        "model_json": lambda x: reduce_json_model(x) if x is not None else None
+    })
+    models.replace("", None, inplace=True)
     return BPMNDataset(name=name, models=models)
 
 
@@ -119,14 +138,15 @@ def load_dataset(
         model_type = namespace.value
 
         partial_df.query(f'Namespace =="{model_type}"', inplace=True)
-        partial_df.drop(columns=['Revision ID', 'Organization ID', 'Datetime', 'Description', 'Type', 'Namespace'],inplace=True)
+        partial_df.drop(columns=['Revision ID', 'Organization ID', 'Datetime', 'Description', 'Type', 'Namespace'],
+                        inplace=True)
         partial_df.rename(columns={'Model ID': 'id', 'Name': 'name'}, inplace=True)
         partial_df.set_index('id', inplace=True)
 
         partial_df['model_json'] = partial_df['Model JSON'].apply(reduce_json_model)
         partial_df.drop(columns=['Model JSON'], inplace=True)
 
-        partial_df['file_path'] = os.path.join(dataset_path,model_file)
+        partial_df['file_path'] = os.path.join(dataset_path, model_file)
         partial_df['hash'] = partial_df['model_json'].apply(compute_hash_of_modeldict)
 
         partial_df['language'] = None
@@ -144,9 +164,7 @@ def load_dataset(
         break
 
     full_dataset.reset_index(drop=False, inplace=True, names='id')
-    full_dataset.fillna({'name':''}, inplace=True)
+    full_dataset.fillna({'name': ''}, inplace=True)
 
     bpmn2_dataset = BPMNDataset(name="sapsam_2022_bpmn2", models=full_dataset)
     return bpmn2_dataset
-
-

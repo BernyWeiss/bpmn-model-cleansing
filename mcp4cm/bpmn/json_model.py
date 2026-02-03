@@ -26,7 +26,6 @@ class Shape(BaseModel):
 
 
 def reduce_json_model(jsonstring: str) -> dict[str, Any]:
-    full_json = json.loads(jsonstring)
-    raw_json_model = Shape(**full_json)
-    small_json = raw_json_model.model_dump_json(exclude_unset=True)
+    raw_json_model = Shape.model_validate_json(jsonstring)
+    small_json = raw_json_model.model_dump(exclude_unset=True)
     return small_json

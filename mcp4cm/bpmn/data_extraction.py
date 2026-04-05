@@ -2,7 +2,7 @@ import hashlib
 import json
 from collections import deque
 from functools import partial
-from typing import List
+from typing import List, Dict
 
 from mcp4cm.bpmn.json_model import Shape
 from mcp4cm.uml.filtering_patterns import empty_name_pattern
@@ -30,11 +30,10 @@ def extract_names_from_models(dataset: 'BPMNDataset',
     print(f"Extracting {column} from raw model done.")
 
 
-def _extract_names_from_shape(model_json_string: str,
+def _extract_names_from_shape(model_json: List | Dict,
                               use_types: bool = False,
                               empty_name_pattern: str = "empty name") -> list[str]:
-    # TODO: Continue to with Dict/List type instead of str
-    bpmn_model_shape = Shape(**json.loads(model_json_string))
+    bpmn_model_shape = Shape.model_validate(model_json)
     names = list()
     names_with_types = list()
 

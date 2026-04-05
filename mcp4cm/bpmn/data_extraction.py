@@ -27,7 +27,7 @@ def extract_names_from_models(dataset: 'BPMNDataset',
 
     dataset.models[column] = dataset.models['model_json'].apply(name_extraction)
 
-    print("Done")
+    print(f"Extracting {column} from raw model done.")
 
 
 def _extract_names_from_shape(model_json_string: str,
@@ -45,7 +45,7 @@ def _extract_names_from_shape(model_json_string: str,
         for child in element.childShapes:
             stack.append(child)
 
-
+        # TODO: add proper check for None, Emtpy and whitespace
         name = empty_name_pattern if element.properties is None or element.properties.name is None else element.properties.name
 
         if use_types:

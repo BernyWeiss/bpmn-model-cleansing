@@ -1,5 +1,6 @@
 from mcp4cm.uml.dataloading import load_dataset as load_uml_dataset
 from mcp4cm.archimate.dataloading import load_dataset as load_archimate_dataset
+from mcp4cm.bpmn.dataloading import load_dataset as load_bpmn_dataset
 from mcp4cm.base import DatasetType, Dataset
 
 
@@ -37,6 +38,8 @@ def load_dataset(
         return load_uml_dataset(path, uml_type, language_csv_path)
     elif dataset_type == DatasetType.EAMODELSET:
         return load_archimate_dataset(path)
+    elif dataset_type == DatasetType.BPMNMODELSET:
+        return load_bpmn_dataset(path, reduced_size=True)
     else:
         raise ValueError(f"Unknown dataset type: {dataset_type}")
     

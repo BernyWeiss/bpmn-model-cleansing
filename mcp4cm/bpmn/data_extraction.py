@@ -7,18 +7,15 @@ from typing import List, Dict
 from mcp4cm.bpmn.json_model import Shape
 from mcp4cm.uml.filtering_patterns import empty_name_pattern
 
+translation_table = str.maketrans({'\n': ' '})
 
 def compute_hash_of_modeldict(modeldict: dict) -> str:
     return hashlib.sha256(json.dumps(modeldict).encode(encoding='utf-8', errors='strict')).hexdigest()
 
 
-
-
 def extract_names_from_models(dataset: 'BPMNDataset',
                               use_types: bool = False,
                               empty_name_pattern: str = "empty name") -> None:
-
-
     column = 'names'
     if use_types:
         column = 'names_with_types'
@@ -39,33 +36,46 @@ def _extract_names_from_shape(model_json: List | Dict,
 
     stack = deque([bpmn_model_shape])
 
-    while len(stack) > 0:
-        element = stack.pop()
-        for child in element.childShapes:
-            stack.append(child)
-
-        # TODO: add proper check for None, Emtpy and whitespace
-        name = empty_name_pattern if element.properties is None or element.properties.name is None else element.properties.name
-
-        if use_types:
-            if element.stencil is not None:
-                if element.stencil.id is not None:
-                    names_with_types.append(f"{element.stencil.id}: {name}")
-                    continue
-
-            names_with_types.append(f"unknown type: {name}")
-        else:
-            names.append(name)
-
-
     if use_types:
+        while len(stack) > 0:
+            element = stack.pop()
+            for child in element.childShapes:
+                stack.append(child)
+            if element.properties:
+                name = None
+                if element.properties.name:
+                    name = element.properties.name.strip()
+                    name = name.translate(translation_table)
+                if not name:
+                    name = empty_name_pattern
+
+            if element.stencil:
+                if element.stencil.id:
+                    names_with_types.append(f"{element.stencil.id}: {name}")
+            else: names_with_types.append(f"unknown type: {name}")
         return names_with_types
-    else: return names
+
+    else:
+        while len(stack) > 0:
+            element = stack.pop()
+            for child in element.childShapes:
+                stack.append(child)
+
+            if element.properties:
+                name = None
+                if element.properties.name:
+                    name = element.properties.name.strip()
+                    name = name.translate(translation_table)
+                if not name:
+                    name = empty_name_pattern
+                names.append(name)
+            else: names.append(empty_name_pattern)
+        return names
 
 
 def extract_names_from_model(
-    model: 'BPMNModel',
-    use_types: bool = False) -> 'BPMNModel':
+        model: 'BPMNModel',
+        use_types: bool = False) -> 'BPMNModel':
     """
     TODO: Write docstring
     This method was adapted from the sapsam BpmnModelParser _get_elements_flat method.
@@ -73,7 +83,6 @@ def extract_names_from_model(
 
     Returns the model with model.names or names_with_types set (depending on use_types).
     """
-
 
     model_dict = model.model_json
     names = list()
@@ -105,6 +114,3 @@ def extract_names_from_model(
         model.names = names
 
     return model
-
-
-

@@ -66,7 +66,7 @@ class BPMNDataset(Dataset):
             return pd.DataFrame([model.model_dump() if isinstance(model, BPMNModel) else model for model in models])
         if isinstance(models, pd.DataFrame):
             return models
-        raise TypeError("Items must be a list of BPMNModels or a pd.DataFrame")
+        raise TypeError("'models' must be a list of BPMNModels or a pd.DataFrame")
 
     def __getitem__(self, index: int) -> BPMNModel:
         """

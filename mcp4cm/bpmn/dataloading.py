@@ -20,6 +20,7 @@ from mcp4cm.utils import create_directories_for_path
 SAM_MODELS_PATH = 'sap_sam_2022/models'
 PROCESSED_MODELS_PATH = 'processed/reduced'
 CSV_FIELD_SIZE_LIMIT = 6000000
+BPMN_MODEL_COLUMNS = ['id','name','model_json','file_path','hash','language','names','names_with_types','model_xmi','model_txt','category','tags']
 
 
 class BPMNModel(Model):
@@ -52,13 +53,13 @@ class BPMNDataset(Dataset):
     BPMN models and provides BPMN-specific operations.
 
     Attributes:
-        models (List[BPMNModel]): List of BPMN models in the dataset.
+        models (List[BPMNModel]| pandas.DataFrame): List of BPMN models in the dataset.
     """
 
     class Config:
         arbitrary_types_allowed = True
 
-    models: pd.DataFrame  # TODO: Writer proper init with column names of model to represent empty model correctly.
+    models: pd.DataFrame = pd.DataFrame(columns=BPMN_MODEL_COLUMNS)
 
     @field_validator("models", mode="before")
     def convert_to_df(cls, models: List['BPMNModel'] | pd.DataFrame) -> pd.DataFrame:

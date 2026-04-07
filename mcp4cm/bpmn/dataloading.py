@@ -1,4 +1,5 @@
 import ast
+import hashlib
 import json
 import os
 
@@ -13,7 +14,6 @@ from pydantic import field_validator
 from tqdm.auto import tqdm
 
 from mcp4cm.base import Model, Dataset
-from mcp4cm.bpmn.data_extraction import compute_hash_of_modeldict
 from mcp4cm.bpmn.json_model import reduce_json_model, Shape
 from mcp4cm.utils import create_directories_for_path
 
@@ -190,3 +190,7 @@ def load_dataset(
 
     bpmn2_dataset = BPMNDataset(name="sapsam_2022_bpmn2", models=full_dataset)
     return bpmn2_dataset
+
+
+def compute_hash_of_modeldict(modeldict: dict) -> str:
+    return hashlib.sha256(json.dumps(modeldict).encode(encoding='utf-8', errors='strict')).hexdigest()

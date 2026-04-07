@@ -1,11 +1,13 @@
 from collections import defaultdict
-from langdetect import detect, DetectorFactory
+from langdetect import detect, DetectorFactory, LangDetectException
 
 from mcp4cm.base import Dataset, Model
+from mcp4cm.bpmn.dataloading import BPMNDataset
 from mcp4cm.generic.utils import get_model_text
+from mcp4cm.bpmn.language_detection import filter_models_by_language as filter_bpmn_models_by_language
 
 
-def get_model_language(model: Model, key: str = 'names') -> str:
+def get_model_language(model: Model, key: str = 'names', empty_name: str | None = None) -> str:
     """
     Process a single model to detect its language.
     
@@ -21,14 +23,21 @@ def get_model_language(model: Model, key: str = 'names') -> str:
     """
     if model.language is not None:
         return model.language
-    
-    text = get_model_text(model, key)
+
+    text = get_model_text(model, key, empty_name=empty_name)
+    return get_text_language(text)
+
+
+def get_text_language(text: str) -> str:
     if text and text.strip():  # Ensure it's not empty or whitespace
-        return detect(text)
+        try:
+            return detect(text)
+        except LangDetectException:
+            return None
     return None
 
 
-def detect_dataset_languages(dataset: Dataset, key: str = 'names') -> dict:
+def detect_dataset_languages(dataset: Dataset, key: str = 'names', empty_name: str | None = None) -> dict:
     """
     Detect the language of each model in the dataset.
     
@@ -46,22 +55,23 @@ def detect_dataset_languages(dataset: Dataset, key: str = 'names') -> dict:
         >>> languages = detect_dataset_languages(dataset)
         >>> print(f"Found {len(languages['en'])} English models")
     """
+    # TODO Add Changes to Docstring - empty_name to filter pattern which is added in name extraction.
     DetectorFactory.seed = 0  # Set seed for reproducibility
     language_dict = defaultdict(list)
-    
-    for model in dataset.models:
-        lang = get_model_language(model, key)
+
+    for model in dataset:
+        lang = get_model_language(model, key, empty_name=empty_name)
         if lang:
             language_dict[lang].append(model)
-    
+
     print("Language Distribution Across Models:")
     for lang, models in language_dict.items():
         print(f"Language: {lang}, Count: {len(models)}")
-    
+
     return language_dict
 
 
-def extract_non_english_models(dataset: Dataset) -> Dataset:
+def extract_non_english_models(dataset: Dataset, empty_name: str | None = None) -> Dataset:
     """
     Extract non-English models from the dataset.
     
@@ -80,18 +90,21 @@ def extract_non_english_models(dataset: Dataset) -> Dataset:
         >>> print(f"Found {len(non_english.models)} non-English models")
     """
     non_english_models = []
-    
-    for model in dataset.models:
+
+    for model in dataset:
         if model.model_txt is None:
             continue
-        lang = get_model_language(model)
+        lang = get_model_language(model, empty_name=empty_name)
         if lang and lang != 'en':
             non_english_models.append(model)
-    
+
     return Dataset(name=dataset.name, models=non_english_models)
 
 
-def filter_models_by_language(dataset: Dataset, language: str, key: str = 'names') -> Dataset:
+def filter_models_by_language(dataset: Dataset,
+                              language: str,
+                              key: str = 'names',
+                              empty_name: str | None = None) -> Dataset:
     """
     Filter models in the dataset by a specific language.
     
@@ -109,5 +122,9 @@ def filter_models_by_language(dataset: Dataset, language: str, key: str = 'names
         >>> english_models = filter_models_by_language(dataset, 'en')
         >>> print(f"Found {len(english_models.models)} English models")
     """
-    filtered_models = [model for model in dataset.models if get_model_language(model, key) == language]
+    if isinstance(dataset, BPMNDataset):
+        return filter_bpmn_models_by_language(dataset, language, key, empty_name)
+
+    filtered_models = [model for model in dataset if
+                       get_model_language(model, key, empty_name=empty_name) == language]
     return Dataset(name=dataset.name, models=filtered_models)

@@ -1,19 +1,18 @@
-import hashlib
-import json
 from collections import deque
 from functools import partial
 from typing import List, Dict
 
+from pydantic.v1.utils import get_model
+
 from mcp4cm.bpmn.json_model import Shape
-from mcp4cm.uml.filtering_patterns import empty_name_pattern
+from mcp4cm.bpmn.dataloading import BPMNDataset
+from mcp4cm.generic.language_detection import get_model_language, get_text_language
+from mcp4cm.generic.utils import join_texts
 
 translation_table = str.maketrans({'\n': ' '})
 
-def compute_hash_of_modeldict(modeldict: dict) -> str:
-    return hashlib.sha256(json.dumps(modeldict).encode(encoding='utf-8', errors='strict')).hexdigest()
 
-
-def extract_names_from_models(dataset: 'BPMNDataset',
+def extract_names_from_models(dataset: BPMNDataset,
                               use_types: bool = False,
                               empty_name_pattern: str = "empty name") -> None:
     column = 'names'
@@ -52,7 +51,8 @@ def _extract_names_from_shape(model_json: List | Dict,
             if element.stencil:
                 if element.stencil.id:
                     names_with_types.append(f"{element.stencil.id}: {name}")
-            else: names_with_types.append(f"unknown type: {name}")
+            else:
+                names_with_types.append(f"unknown type: {name}")
         return names_with_types
 
     else:
@@ -69,5 +69,22 @@ def _extract_names_from_shape(model_json: List | Dict,
                 if not name:
                     name = empty_name_pattern
                 names.append(name)
-            else: names.append(empty_name_pattern)
+            else:
+                names.append(empty_name_pattern)
         return names
+
+
+def filter_empty_models(dataset: BPMNDataset, key: str = 'names', inplace: bool = False,
+                        empty_name: str = "empty name") -> BPMNDataset:
+    empty_models = dataset.models[key].apply(lambda names: all(name == empty_name for name in names))
+    non_empty_models = ~empty_models
+    print(f'Found {sum(empty_models)} models with empty names.')
+    if inplace:
+        dataset.models = dataset.models[non_empty_models]
+        return dataset
+    return BPMNDataset(name=dataset.name, models=dataset.models[non_empty_models])
+
+
+def extract_model_languages(dataset: BPMNDataset, key: str = 'names', empty_name: str = "empty name"):
+    dataset.models['language'] = dataset.models[key].apply(
+        lambda text: get_text_language(join_texts(text, empty_name=empty_name)))

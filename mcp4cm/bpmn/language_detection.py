@@ -1,6 +1,5 @@
 from mcp4cm.bpmn.dataloading import BPMNDataset
-from mcp4cm.generic.language_detection import get_text_language
-from mcp4cm.generic.utils import join_texts
+from mcp4cm.generic.utils import join_texts, get_text_language
 from functools import partial
 
 

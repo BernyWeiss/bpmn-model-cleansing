@@ -1,9 +1,9 @@
 from collections import defaultdict
-from langdetect import detect, DetectorFactory, LangDetectException
+from langdetect import DetectorFactory
 
 from mcp4cm.base import Dataset, Model
 from mcp4cm.bpmn.dataloading import BPMNDataset
-from mcp4cm.generic.utils import get_model_text
+from mcp4cm.generic.utils import get_model_text, get_text_language
 from mcp4cm.bpmn.language_detection import filter_models_by_language as filter_bpmn_models_by_language
 
 
@@ -26,15 +26,6 @@ def get_model_language(model: Model, key: str = 'names', empty_name: str | None 
 
     text = get_model_text(model, key, empty_name=empty_name)
     return get_text_language(text)
-
-
-def get_text_language(text: str) -> str:
-    if text and text.strip():  # Ensure it's not empty or whitespace
-        try:
-            return detect(text)
-        except LangDetectException:
-            return None
-    return None
 
 
 def detect_dataset_languages(dataset: Dataset, key: str = 'names', empty_name: str | None = None) -> dict:

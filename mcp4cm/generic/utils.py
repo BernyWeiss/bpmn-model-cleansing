@@ -1,5 +1,6 @@
+from langdetect import detect, LangDetectException
+
 from mcp4cm.base import Model
-from typing import Dict, List
 
 
 def get_model_text(model: Model, key: str, delim=' ', empty_name: str | None = None) -> str:
@@ -8,7 +9,7 @@ def get_model_text(model: Model, key: str, delim=' ', empty_name: str | None = N
     return text
 
 
-def join_texts(text: str | List[str] | Dict[str], delim: str = ' ', empty_name: str | None = None) -> str:
+def join_texts(text, delim: str = ' ', empty_name: str | None = None) -> str:
     if isinstance(text, list):
         text = sorted(text)
         if empty_name:
@@ -20,3 +21,12 @@ def join_texts(text: str | List[str] | Dict[str], delim: str = ' ', empty_name: 
             text_values = [expression for expression in text if expression != empty_name]
         text = f'{delim}'.join(text_values)
     return text
+
+
+def get_text_language(text: str) -> str:
+    if text and text.strip():  # Ensure it's not empty or whitespace
+        try:
+            return detect(text)
+        except LangDetectException:
+            return None
+    return None

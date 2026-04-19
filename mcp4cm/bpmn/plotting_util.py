@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 
 
-def plot_duplicate_piechart(labels: tuple, sizes: tuple, title: str) -> None:
+def plot_duplicate_pie_chart(labels: tuple, sizes: tuple, title: str) -> None:
     title = title if title is not None else "Proportions"
     if len(labels) != len(sizes):
         raise ValueError("Number of labels and sizes do not match")

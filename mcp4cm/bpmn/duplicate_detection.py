@@ -56,19 +56,25 @@ def detect_duplicates_by_hash(
 
     end_time = time.time()
 
+    total_number_of_models = len(dataset)
+    unique_model_count = len(unique_models)
+    duplicate_count = len(duplicate_models)
+    number_of_duplicate_groups = sum(~group_mask)
+
     if print_results:
+        print("\n=== Dataset Statistics ===")
         print(f"Duplicate Detection on already computed hashes took {end_time - starttime:.2f} seconds.")
-        print(f"Total number of models: {len(dataset)}")
-        print(f"Total unique files: {len(unique_models)}")
-        print(f"Total duplicate files: {len(dataset) - len(unique_models)}")
-        print(f"Duplicate groups: {sum(~group_mask)}")
+        print(f"Total number of models: {total_number_of_models}")
+        print(f"Total unique files: {unique_model_count}")
+        print(f"Total duplicate files: {duplicate_count}")
+        print(f"Number of duplicate groups: {number_of_duplicate_groups}")
 
     if inplace:
         dataset.models = unique_models
 
     if plt_fig:
         labels = ('Unique Files', 'Duplicate Files')
-        sizes = (len(unique_models), len(dataset) - len(unique_models))
+        sizes = (unique_model_count, duplicate_count)
         plot_duplicate_pie_chart(labels, sizes, "Proportion of Unique vs. Duplicate Files")
 
 

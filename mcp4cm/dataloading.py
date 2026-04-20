@@ -39,7 +39,7 @@ def load_dataset(
     elif dataset_type == DatasetType.EAMODELSET:
         return load_archimate_dataset(path)
     elif dataset_type == DatasetType.BPMNMODELSET:
-        return load_bpmn_dataset(path, reduced_size=True)
+        return load_bpmn_dataset(path, reduced_size=False)
     else:
         raise ValueError(f"Unknown dataset type: {dataset_type}")
     

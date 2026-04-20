@@ -2,11 +2,8 @@ from collections import deque
 from functools import partial
 from typing import List, Dict
 
-from pydantic.v1.utils import get_model
-
 from mcp4cm.bpmn.json_model import Shape
 from mcp4cm.bpmn.dataloading import BPMNDataset
-from mcp4cm.generic.language_detection import get_model_language
 from mcp4cm.generic.utils import join_texts, get_text_language
 
 translation_table = str.maketrans({'\n': ' '})

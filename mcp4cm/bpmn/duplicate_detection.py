@@ -3,11 +3,9 @@ import time
 from collections import Counter
 from functools import partial
 
-from sklearn.decomposition import TruncatedSVD
-from sklearn.preprocessing import normalize
+import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neighbors import radius_neighbors_graph
-from sklearn.cluster import AgglomerativeClustering
 from scipy.sparse.csgraph import connected_components
 
 from mcp4cm.generic.utils import join_texts
@@ -49,8 +47,8 @@ def detect_duplicates_by_hash(
 
     Returns:
         tuple: A tuple containing:
-            - List[UMLModel]: A list of unique UML models.
-            - List[tuple]: A list of duplicate groups, where each group is a tuple of (original, duplicate).
+            - BPMNDataset: A BPMNDataset containing all unqiue models
+            - BPMNDataset: A BPMNDataset containing all duplicate models, hash can be used to determine duplicate groups.
 
     Example:
         >>> unique_models, duplicate_groups = detect_duplicates_by_hash(dataset, inplace=True)
@@ -90,6 +88,11 @@ def detect_duplicates_by_hash(
 
         plot_duplicate_pie_chart(labels, sizes,colors, "Proportion of Unique vs. Duplicate Files")
 
+    unique_dataset = BPMNDataset(name=f'{dataset.name}_unique', models=unique_models)
+    duplicate_dataset = BPMNDataset(name=f'{dataset.name}_duplicates', models=duplicate_models)
+
+    return unique_dataset, duplicate_dataset
+
 
 def tfidf_near_duplicate_detector(
         dataset: BPMNDataset,
@@ -117,8 +120,8 @@ def tfidf_near_duplicate_detector(
 
     Returns:
         tuple: A tuple containing:
-            - List[BPMNModel]: A list of unique BPMN models.
-            - List[tuple]: A list of near-duplicate groups, where each group is a tuple of (model1, model2).
+            - BPMNDataset: A BPMNDataset containing all unqiue models
+            - BPMNDataset: A BPMNDataset containing all duplicate models, where the field 'duplicate_group' a group number for duplicates.
 
     Example:
         >>> unique_models, near_duplicate_groups = tfidf_near_duplicate_detector(dataset, threshold=0.85)
@@ -126,6 +129,9 @@ def tfidf_near_duplicate_detector(
     """
     # Extract the text content from the models
     start_time = time.time()
+
+    model_df_index = dataset.models.index
+
     content_series, tfidf_matrix = _generate_tf_idf_matrix(dataset, key)
     cosine_distance_threshold = 1 - threshold
 
@@ -140,21 +146,34 @@ def tfidf_near_duplicate_detector(
     print('Calculating connected Components')
     n_components, labels = connected_components(connectivity_graph, directed=False, return_labels=True)
     print('Calculating connected Components Done')
+    print(f'Number of components: {n_components}')
 
     print('Finding unique files:')
     label_counts = Counter(labels)
+
     unique_file_mask = [label_counts[label] == 1 for label in labels]
+    duplicate_files_mask = [not is_unique for is_unique in unique_file_mask]
     indices_of_unique_files = content_series.index[unique_file_mask]
 
+
     print('Creating Duplicate Groups')
+
+    duplicate_group_col_name = 'duplicate_group'
+    duplicate_group_series = pd.Series(labels, index=model_df_index, name=duplicate_group_col_name)
+    duplicate_group_series = duplicate_group_series.loc[duplicate_files_mask]
+    duplicate_group_df = pd.merge(dataset.models, duplicate_group_series,
+                                  left_index=True, right_index=True,
+                                  how='right', validate='one_to_one')
 
     total_files_processed = len(dataset)
     unique_file_count = len(indices_of_unique_files)
     near_duplicate_count = total_files_processed - unique_file_count
-    number_of_duplicate_groups = 0  # TODO: Change after generation of duplicate groups
+    number_of_duplicate_groups = duplicate_group_df[duplicate_group_col_name].nunique()
+
+    unique_model_df = dataset.models.loc[indices_of_unique_files,:]
 
     if inplace:
-        dataset.models = dataset.models.loc[indices_of_unique_files,:]
+        dataset.models = unique_model_df
 
     if print_results:
         print("\n=== Dataset Statistics ===")
@@ -169,43 +188,9 @@ def tfidf_near_duplicate_detector(
         colors = ('green', 'red')
         plot_duplicate_pie_chart(labels, sizes, colors,"Proportion of Unique vs. Near Duplicate Files")
 
+    unique_dataset = BPMNDataset(name=f'{dataset.name}_unique', models=unique_model_df)
+    duplicate_dataset = BPMNDataset(name=f'{dataset.name}_duplicates', models=duplicate_group_df)
 
-def tfidf_cluster_near_duplicate_detector(
-        dataset: BPMNDataset,
-        key='names',
-        threshold: float = TFIDF_DUPLICATE_THRESHOLD,
-        inplace: bool = False,
-        plt_fig: bool = False
-):
-    # TODO: This method can be removed.
-    #  Agglomerative clustering might be an option when it works on sparse inputs (to improve creation of duplicate groups)
+    return unique_dataset, duplicate_dataset
 
-    # Extract the text content from the models
-    start_time = time.time()
-    text_data, tfidf_matrix = _generate_tf_idf_matrix(dataset, key)
-    cosine_distance_threshold = 1 - threshold
 
-    print('Generating Connectivity Graph')
-
-    connectivity_graph = radius_neighbors_graph(tfidf_matrix,
-                                                radius=cosine_distance_threshold,
-                                                mode='distance',
-                                                metric='cosine')
-    print('Connectivity Graph Done')
-
-    print('Reducing Matrix Features')
-    reduced_matrix = TruncatedSVD(n_components=50, random_state=0).fit_transform(tfidf_matrix)
-    normalized_reduced_matrix = normalize(reduced_matrix)
-    print('Reducing Matrix Features Done')
-
-    print('Creating Clustering on Features.')
-    clustering_algorithm = AgglomerativeClustering(n_clusters=None,
-                                                   metric='cosine',
-                                                   distance_threshold=cosine_distance_threshold,
-                                                   linkage='average')
-
-    cluster_labels = clustering_algorithm.fit_predict(normalized_reduced_matrix)
-    print('Clustering Done')
-    print('Number of clusters:')
-    print(clustering_algorithm.n_clusters)
-    print(cluster_labels)

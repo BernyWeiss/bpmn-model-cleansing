@@ -35,6 +35,7 @@ class BPMNModel(Model):
     """
     name: Optional[str] = None
     names_with_types: Optional[List[str]] = None
+    duplicate_group: Optional[str] = None
 
     def __repr__(self):
         return f"({self.name}, {self.file_path})"
@@ -75,7 +76,7 @@ class BPMNDataset(Dataset):
             index (int): Index of the model to retrieve.
 
         Returns:
-            UMLModel: The UML model at the specified index.
+            BPMNModel: The BPMN model at the specified index.
         """
         model = BPMNModel.model_validate(self.models.iloc[index])
         return model

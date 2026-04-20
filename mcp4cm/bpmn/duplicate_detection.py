@@ -1,6 +1,6 @@
 import time
 
-from collections import defaultdict, Counter
+from collections import Counter
 from functools import partial
 
 from sklearn.decomposition import TruncatedSVD
@@ -14,7 +14,7 @@ from mcp4cm.generic.utils import join_texts
 
 from mcp4cm.bpmn.dataloading import BPMNDataset
 from mcp4cm.bpmn.filtering_patterns import TFIDF_DUPLICATE_THRESHOLD
-from mcp4cm.bpmn.plotting_util import plot_duplicate_pie_chart
+from mcp4cm.generic.plotting_util import plot_duplicate_pie_chart
 
 
 def _generate_tf_idf_matrix(dataset: BPMNDataset, key: str = 'names'):
@@ -35,15 +35,26 @@ def detect_duplicates_by_hash(
         print_results: bool = False
 ):
     """
+    Detect duplicate models in the BPMNDataset based on their hash values.
+
+    This function identifies exact duplicates in a dataset by using the hash values stored for each value.
+    Because hash values for the BPMNDataset are required upon loading, hashes are not recomputed.
+    It can optionally modify the dataset inplace to remove duplicates, visualize the duplicate distribution and print statistics for the deduplication.
 
     Args:
-        dataset:
-        inplace:
-        plt_fig:
-        print_results:
+        dataset (Dataset): The dataset containing models.
+        inplace (bool): If True, removes duplicates from the dataset. Defaults to False.
+        plt_fig (bool): If True, displays a pie chart of unique vs. duplicate files. Defaults to False.
+        print_results (bool): If True, prints statistics about unique and duplicate files in the Dataset. Defaults to True.
 
     Returns:
+        tuple: A tuple containing:
+            - List[UMLModel]: A list of unique UML models.
+            - List[tuple]: A list of duplicate groups, where each group is a tuple of (original, duplicate).
 
+    Example:
+        >>> unique_models, duplicate_groups = detect_duplicates_by_hash(dataset, inplace=True)
+        >>> print(f"Found {len(duplicate_groups)} duplicate groups")
     """
     starttime = time.time()
 
@@ -75,10 +86,12 @@ def detect_duplicates_by_hash(
     if plt_fig:
         labels = ('Unique Files', 'Duplicate Files')
         sizes = (unique_model_count, duplicate_count)
-        plot_duplicate_pie_chart(labels, sizes, "Proportion of Unique vs. Duplicate Files")
+        colors = ('green', 'red')
+
+        plot_duplicate_pie_chart(labels, sizes,colors, "Proportion of Unique vs. Duplicate Files")
 
 
-def tfidf_graph_near_duplicate_detector(
+def tfidf_near_duplicate_detector(
         dataset: BPMNDataset,
         key='names',
         threshold: float = TFIDF_DUPLICATE_THRESHOLD,
@@ -87,17 +100,29 @@ def tfidf_graph_near_duplicate_detector(
         print_results: bool = False,
 ):
     """
+    Detect near-duplicate models in the BPMNDataset based on TF-IDF vectorization and cosine similarity.
+
+    This function identifies near-duplicate models by computing TF-IDF vectors
+    for model text content and measuring their cosine similarity. Models with
+    similarity above the threshold are considered near-duplicates.
 
     Args:
-        dataset:
-        key:
-        threshold:
-        inplace:
-        plt_fig:
-        print_results:
+        dataset (BPMNDataset): The dataset containing Models.
+        key (str): The key to the text content which is used to calculate TF-IDF vectors. Defaults to 'names'.
+        threshold (float): The similarity threshold for considering two models as near-duplicates.
+            Values range from 0 to 1, with 1 being identical and 0 being completely different. Defaults to TFIDF_DUPLICATE_THRESHOLD.
+        inplace (bool): If True, removes near-duplicates from the dataset. Defaults to False.
+        plt_fig (bool): If True, displays a pie chart of unique vs. near-duplicate files. Defaults to False.
+        print_results (bool): If True, prints statistics about unique and duplicate files in the Dataset. Defaults to True.
 
     Returns:
+        tuple: A tuple containing:
+            - List[BPMNModel]: A list of unique BPMN models.
+            - List[tuple]: A list of near-duplicate groups, where each group is a tuple of (model1, model2).
 
+    Example:
+        >>> unique_models, near_duplicate_groups = tfidf_near_duplicate_detector(dataset, threshold=0.85)
+        >>> print(f"Found {len(near_duplicate_groups)} near-duplicate groups with threshold {threshold}")
     """
     # Extract the text content from the models
     start_time = time.time()
@@ -141,7 +166,8 @@ def tfidf_graph_near_duplicate_detector(
     if plt_fig:
         labels = ('Unique Files', 'Near Duplicate Files')
         sizes = (unique_file_count, total_files_processed - unique_file_count)
-        plot_duplicate_pie_chart(labels, sizes, "Proportion of Unique vs. Near Duplicate Files")
+        colors = ('green', 'red')
+        plot_duplicate_pie_chart(labels, sizes, colors,"Proportion of Unique vs. Near Duplicate Files")
 
 
 def tfidf_cluster_near_duplicate_detector(

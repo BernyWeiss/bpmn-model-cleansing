@@ -1,12 +1,10 @@
 from matplotlib import pyplot as plt
 
 
-def plot_duplicate_pie_chart(labels: tuple, sizes: tuple, title: str) -> None:
+def plot_duplicate_pie_chart(labels: tuple, sizes: tuple, colors: tuple, title: str) -> None:
     title = title if title is not None else "Proportions"
     if len(labels) != len(sizes):
         raise ValueError("Number of labels and sizes do not match")
-
-    colors = ['green', 'red']
 
     plt.figure(figsize=(6, 6))
     plt.pie(sizes, labels=labels, autopct='%1.1f%%', colors=colors, startangle=140)

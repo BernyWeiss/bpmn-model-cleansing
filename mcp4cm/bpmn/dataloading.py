@@ -1,9 +1,6 @@
-import ast
-import hashlib
 import json
 import os
 
-from pathlib import Path
 from typing import Optional, List
 from enum import Enum
 from ast import literal_eval
@@ -16,6 +13,7 @@ from tqdm.auto import tqdm
 from mcp4cm.base import Model, Dataset
 from mcp4cm.bpmn.json_model import reduce_json_model, Shape
 from mcp4cm.utils import create_directories_for_path
+from mcp4cm.generic.utils import get_file_hash
 
 SAM_MODELS_PATH = 'sap_sam_2022/models'
 PROCESSED_MODELS_PATH = 'processed/reduced'
@@ -109,21 +107,17 @@ class SapSam2022Namespaces(Enum):
     BPMN2 = 'http://b3mn.org/stencilset/bpmn2.0#'
 
 
-def load_names(name: str):
+def _load_names(name: str):
     if not name:
         return None
-    return ast.literal_eval(name)
+    return literal_eval(name)
 
 
 def load_dataset_from_csv(name: str, fp: str) -> BPMNDataset:
-    # models = pd.read_csv(fp, na_filter=False, converters={
-    #    "model_json": lambda x: eval(x, {"__builtins__": None}, {}) if x else None
-    # })
-
     models = pd.read_csv(fp, na_filter=False, converters={
         "model_json": lambda x: reduce_json_model(x) if x is not None else None,
-        "names": lambda x: load_names(x),
-        "names_with_types": lambda x: load_names(x),
+        "names": lambda x: _load_names(x),
+        "names_with_types": lambda x: _load_names(x),
     })
     models.replace("", None, inplace=True)
     return BPMNDataset(name=name, models=models)
@@ -165,7 +159,7 @@ def load_dataset(
         partial_df.drop(columns=['Model JSON'], inplace=True)
 
         partial_df['file_path'] = os.path.join(dataset_path, model_file)
-        partial_df['hash'] = partial_df['model_json'].apply(compute_hash_of_modeldict)
+        partial_df['hash'] = partial_df['model_json'].apply(_compute_hash_of_modeldict)
 
         partial_df['language'] = None
         partial_df['names'] = None
@@ -192,5 +186,5 @@ def load_dataset(
     return bpmn2_dataset
 
 
-def compute_hash_of_modeldict(modeldict: dict) -> str:
-    return hashlib.sha256(json.dumps(modeldict).encode(encoding='utf-8', errors='strict')).hexdigest()
+def _compute_hash_of_modeldict(modeldict: dict) -> str:
+    return get_file_hash(json.dumps(modeldict))

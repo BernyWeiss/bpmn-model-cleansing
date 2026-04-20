@@ -1,3 +1,5 @@
+import hashlib
+
 from langdetect import detect, LangDetectException
 
 from mcp4cm.base import Model
@@ -30,3 +32,22 @@ def get_text_language(text: str) -> str:
         except LangDetectException:
             return None
     return None
+
+
+def get_file_hash(string: str) -> str:
+    """
+    Compute a SHA-256 hash for the content of a file.
+
+    Args:
+        string (str): The content of the file to hash.
+
+    Returns:
+        str: The SHA-256 hash of the file content.
+
+    Example:
+        >>> hash_value = get_file_hash("example content")
+        >>> print(hash_value)
+        '5d41402abc4b2a76b9719d911017c592'
+    """
+
+    return hashlib.sha256(string.encode(encoding='utf-8', errors='strict')).hexdigest()  # Hash the content

@@ -10,6 +10,7 @@ from mcp4cm.bpmn.filtering_patterns import (MIN_ELEMENT_COUNT,
 from mcp4cm.bpmn.json_model import Shape
 from mcp4cm.bpmn.dataloading import BPMNDataset
 from mcp4cm.generic.utils import join_texts, get_text_language
+from tqdm.auto import tqdm
 
 translation_table = str.maketrans({'\n': ' '})
 
@@ -77,7 +78,8 @@ def _extract_names_from_shape(model_json: List | Dict,
 
 
 def extract_model_languages(dataset: BPMNDataset, key: str = 'names', empty_name: str = "empty name"):
-    dataset.models['language'] = dataset.models[key].apply(
+    tqdm.pandas(desc='Language Extraction Progress')
+    dataset.models['language'] = dataset.models[key].progress_apply(
         lambda text: get_text_language(join_texts(text, empty_name=empty_name)))
 
 

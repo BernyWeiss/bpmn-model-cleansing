@@ -1,14 +1,5 @@
 import hashlib
-
-from langdetect import detect, LangDetectException
-
-from mcp4cm.base import Model
-
-
-def get_model_text(model: Model, key: str, delim=' ', empty_name: str | None = None) -> str:
-    text = getattr(model, key, '')
-    text = join_texts(text, delim=delim, empty_name=empty_name)
-    return text
+import re
 
 
 def join_texts(text, delim: str = ' ', empty_name: str | None = None) -> str:
@@ -25,24 +16,15 @@ def join_texts(text, delim: str = ' ', empty_name: str | None = None) -> str:
     return text
 
 
-def get_text_language(text: str) -> str:
-    if text and text.strip():  # Ensure it's not empty or whitespace
-        try:
-            return detect(text)
-        except LangDetectException:
-            return None
-    return None
-
-
 def get_file_hash(string: str) -> str:
     """
-    Compute a SHA-256 hash for the content of a file.
+    Compute a SHA-256 hash for a string.
 
     Args:
-        string (str): The content of the file to hash.
+        string (str): The string to hash.
 
     Returns:
-        str: The SHA-256 hash of the file content.
+        str: The SHA-256 hash of the string.
 
     Example:
         >>> hash_value = get_file_hash("example content")
@@ -51,3 +33,11 @@ def get_file_hash(string: str) -> str:
     """
 
     return hashlib.sha256(string.encode(encoding='utf-8', errors='strict')).hexdigest()  # Hash the content
+
+
+def split_name(name: str):
+    """Splits camelCase, PascalCase, and snake_case names into words and converts them to lowercase."""
+    name = re.sub('([a-z0-9])([A-Z])', r'\1 \2', name)
+    name = re.sub('([A-Z]+)([A-Z][a-z])', r'\1 \2', name)
+    name = name.replace("_", " ").lower()
+    return name

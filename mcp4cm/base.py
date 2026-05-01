@@ -2,6 +2,9 @@ from enum import Enum
 from pydantic import BaseModel
 from typing import List, Optional, Union, Dict
 
+from mcp4cm.util.text_util import join_texts
+
+
 class Model(BaseModel):
     """
     Base class for model objects.
@@ -16,6 +19,7 @@ class Model(BaseModel):
         model_json (Optional[Union[List, Dict]]): Model data in JSON format, if available.
         model_xmi (Optional[str]): Model data in XMI format, if available.
         model_txt (Optional[str]): Model data in plain text format, if available.
+        names (Optional[List[str]]): List of names model elements.
         category (Optional[str]): Category or classification of the model.
         tags (Optional[List[str]]): List of tags associated with the model.
     """
@@ -59,6 +63,11 @@ class Model(BaseModel):
         
         
         return f"Model({names_str}{category_str}{tags_str})"
+
+    def get_text(self, key: str, delim=' ', empty_name: str | None = None) -> str:
+        text = getattr(self, key, '')
+        text = join_texts(text, delim=delim, empty_name=empty_name)
+        return text
 
 
 class Dataset(BaseModel):
@@ -178,3 +187,6 @@ class DatasetType(Enum):
     MODELSET = "modelset"
     EAMODELSET = "eamodelset"
     BPMNMODELSET = "bpmnmodelset"
+
+
+

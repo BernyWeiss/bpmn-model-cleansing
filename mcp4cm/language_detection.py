@@ -1,21 +1,21 @@
 from collections import defaultdict
-from langdetect import DetectorFactory
+
 
 from mcp4cm.base import Dataset, Model
 from mcp4cm.bpmn.dataloading import BPMNDataset
-from mcp4cm.generic.utils import get_model_text, get_text_language
+from mcp4cm._language_detector import _get_text_language, _initialize_language_detector_seed
 from mcp4cm.bpmn.language_detection import filter_models_by_language as filter_bpmn_models_by_language
 
 
-def get_model_language(model: Model, key: str = 'names', empty_name: str | None = None) -> str:
+def detect_model_language(model: Model, key: str = 'names', empty_name: str | None = None) -> str:
     """
     Process a single model to detect its language.
     
     This function uses langdetect to identify the language of the text content
-    in a UML model.
+    in a Model.
     
     Args:
-        model (UMLModel): The model to process for language detection.
+        model (Model): The model to process for language detection.
         
     Returns:
         str: ISO 639-1 language code (e.g., 'en' for English, 'fr' for French),
@@ -24,8 +24,8 @@ def get_model_language(model: Model, key: str = 'names', empty_name: str | None 
     if model.language is not None:
         return model.language
 
-    text = get_model_text(model, key, empty_name=empty_name)
-    return get_text_language(text)
+    text = model.get_text(key, empty_name=empty_name)
+    return _get_text_language(text)
 
 
 def detect_dataset_languages(dataset: Dataset, key: str = 'names', empty_name: str | None = None) -> dict:
@@ -47,11 +47,12 @@ def detect_dataset_languages(dataset: Dataset, key: str = 'names', empty_name: s
         >>> print(f"Found {len(languages['en'])} English models")
     """
     # TODO Add Changes to Docstring - empty_name to filter pattern which is added in name extraction.
-    DetectorFactory.seed = 0  # Set seed for reproducibility
+
+    _initialize_language_detector_seed(seed=0)
     language_dict = defaultdict(list)
 
     for model in dataset:
-        lang = get_model_language(model, key, empty_name=empty_name)
+        lang = detect_model_language(model, key, empty_name=empty_name)
         if lang:
             language_dict[lang].append(model)
 
@@ -85,7 +86,7 @@ def extract_non_english_models(dataset: Dataset, empty_name: str | None = None) 
     for model in dataset:
         if model.model_txt is None:
             continue
-        lang = get_model_language(model, empty_name=empty_name)
+        lang = detect_model_language(model, empty_name=empty_name)
         if lang and lang != 'en':
             non_english_models.append(model)
 
@@ -103,11 +104,11 @@ def filter_models_by_language(dataset: Dataset,
     the specified language code.
     
     Args:
-        dataset (UMLDataset): The dataset containing UML models.
+        dataset (Dataset): The dataset containing models.
         language (str): The ISO 639-1 language code to filter by (e.g., 'en', 'fr').
     
     Returns:
-        UMLDataset: A new dataset containing only models in the specified language.
+        Dataset: A new dataset containing only models in the specified language.
         
     Example:
         >>> english_models = filter_models_by_language(dataset, 'en')
@@ -117,5 +118,5 @@ def filter_models_by_language(dataset: Dataset,
         return filter_bpmn_models_by_language(dataset, language, key, empty_name)
 
     filtered_models = [model for model in dataset if
-                       get_model_language(model, key, empty_name=empty_name) == language]
+                       detect_model_language(model, key, empty_name=empty_name) == language]
     return Dataset(name=dataset.name, models=filtered_models)

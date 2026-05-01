@@ -35,7 +35,7 @@ from mcp4cm.uml.filtering_patterns import (
     letter_space_letter_pattern,
     DUMMY_KEYWORDS,
 )
-from mcp4cm.utils import split_name
+from mcp4cm.util.text_util import split_name
 
 
 def filter_empty_or_invalid_files(
@@ -761,11 +761,11 @@ def filter_dummy_classes(
     inplace: bool = False,
 ) -> UMLDataset:
     """
-    Filter out models containing a high proportion of classes with dummy or generic names.
+    Filter out models containing a high proportion of classes with dummy or util names.
 
     This function focuses specifically on class names (rather than all element names)
     and identifies models where a significant percentage of classes have placeholder names
-    like 'Class1', 'TestClass', etc. Models with many generic class names often
+    like 'Class1', 'TestClass', etc. Models with many util class names often
     represent low-quality or auto-generated UML content.
 
     Args:
@@ -858,7 +858,7 @@ def filter_classes_by_generic_pattern(
     inplace: bool = False,
 ) -> UMLDataset:
     """
-    Filter out models containing classes with overly generic naming patterns.
+    Filter out models containing classes with overly util naming patterns.
 
     This function identifies models that contain classes with names following patterns
     like 'MyClass', 'MyClass1', 'MyClass2', etc. These patterns often indicate placeholder
@@ -866,7 +866,7 @@ def filter_classes_by_generic_pattern(
 
     Args:
         dataset (UMLDataset): The dataset to filter.
-        threshold_count (int): The maximum allowed number of generic class names. Models with
+        threshold_count (int): The maximum allowed number of util class names. Models with
             more than this number will be filtered out. Defaults to GENERIC_PATTERN_THRESHOLD_COUNT.
         inplace (bool): If True, modifies the dataset in-place. If False, returns a new dataset.
             Defaults to False.
@@ -882,7 +882,7 @@ def filter_classes_by_generic_pattern(
     filtered_models = []
     generic_classes = []
 
-    for model in tqdm(dataset.models, desc="Filtering generic classes"):
+    for model in tqdm(dataset.models, desc="Filtering util classes"):
         if not model.model_xmi:
             continue
 
@@ -903,7 +903,7 @@ def filter_classes_by_generic_pattern(
         "Files containing more than one 'class: my class' or 'class: my class' followed by a number:"
     )
     print(
-        f"Models After Filtering based on generic class names (Threshold: {threshold_count})"
+        f"Models After Filtering based on util class names (Threshold: {threshold_count})"
     )
     # for file, total, count in generic_classes:
     #     print(f"{file} - {count}/{total} names")
@@ -982,7 +982,7 @@ def filter_models_by_sequential_and_dummy_words(
         # Flagging condition
         if (
             sequential_ratio >= sequential_threshold  # Too many numbered names
-            or dummy_ratio >= dummy_word_threshold  # Too many generic words
+            or dummy_ratio >= dummy_word_threshold  # Too many util words
             or len(unique_words)
             <= vocabulary_uniqueness_threshold  # Low vocabulary richness
         ):

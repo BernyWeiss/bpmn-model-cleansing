@@ -138,7 +138,7 @@ filter_dummy_names(archimate_dataset)
 ### Deduplication
 
 ```python
-from mcp4cm.generic.duplicate_detection import (
+from mcp4cm.duplicate_detection import (
     detect_duplicates_by_hash,
     tfidf_near_duplicate_detector
 )

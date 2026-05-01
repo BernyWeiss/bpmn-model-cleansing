@@ -2,7 +2,11 @@ from collections import deque
 from functools import partial
 from typing import List, Dict
 
-from mcp4cm.bpmn.filtering_patterns import MIN_ELEMENT_COUNT, MAX_ELEMENT_COUNT, MAX_EMPTY_NAME_PERCENTAGE
+from mcp4cm.bpmn.filtering_patterns import (MIN_ELEMENT_COUNT,
+                                            MAX_ELEMENT_COUNT,
+                                            MAX_EMPTY_NAME_PERCENTAGE,
+                                            DUMMY_WORD_THRESHOLD,
+                                            DUMMY_KEYWORDS)
 from mcp4cm.bpmn.json_model import Shape
 from mcp4cm.bpmn.dataloading import BPMNDataset
 from mcp4cm.generic.utils import join_texts, get_text_language
@@ -159,3 +163,22 @@ def filter_models_by_empty_name_percentage(
     )
     return BPMNDataset(name=dataset.name, models=models)
 
+def filter_models_by_dummy_words(
+        dataset: BPMNDataset,
+        dummy_keywords: List[str] = DUMMY_KEYWORDS,
+        dummy_word_threshold: float = DUMMY_WORD_THRESHOLD,
+        inplace: bool = False,
+) -> BPMNDataset:
+    n_models_before = len(dataset)
+    models = dataset.models
+    models['element_count'] = models['names'].str.len()
+    models['dummy_word_count'] = models['names'].apply(lambda names: sum([1 for name in names if name.lower() in dummy_keywords]))
+    models['dummy_percentage'] = models['dummy_word_count'] / models['element_count']
+    models.query(f'dummy_percentage <= {dummy_word_threshold}', inplace=inplace)
+
+    models.drop(columns=['element_count','dummy_word_count','dummy_percentage'], inplace=True)
+
+    print(
+        f"Filtered out models with a dummy_percentage higher than {dummy_word_threshold}: {n_models_before - len(models)}"
+    )
+    return BPMNDataset(name=dataset.name, models=models)

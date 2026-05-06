@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 
 from typing import Optional, List
 from enum import Enum
@@ -11,9 +12,8 @@ from pydantic import field_validator
 from tqdm.auto import tqdm
 
 from mcp4cm.base import Model, Dataset
-from mcp4cm.bpmn.json_model import reduce_json_model, Shape
-from mcp4cm.utils import create_directories_for_path
-from mcp4cm.generic.utils import get_file_hash
+from mcp4cm.bpmn.json_model import reduce_json_model
+from mcp4cm.util.text_util import get_file_hash
 
 SAM_MODELS_PATH = 'sap_sam_2022/models'
 PROCESSED_MODELS_PATH = 'processed/reduced'
@@ -189,3 +189,9 @@ def load_dataset(
 
 def _compute_hash_of_modeldict(modeldict: dict) -> str:
     return get_file_hash(json.dumps(modeldict))
+
+
+def create_directories_for_path(path: str):
+    file_path = Path(path)
+    directory_path = file_path.parent
+    directory_path.mkdir(parents=True, exist_ok=True)

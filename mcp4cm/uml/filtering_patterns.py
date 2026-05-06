@@ -30,7 +30,7 @@ two_char_pattern = re.compile(r'^[a-zA-Z]\d$', re.IGNORECASE)  # Matches "a1", "
 letter_space_letter_pattern = re.compile(r'^[a-zA-Z]\s[a-zA-Z]$', re.IGNORECASE)  # Matches "a b", "x y", etc.
 
 
-# Set of generic or placeholder terms often found in auto-generated models
+# Set of util or placeholder terms often found in auto-generated models
 DUMMY_KEYWORDS = {
     "my class",  # Generic class name
     "class",  # Placeholder for class
@@ -58,12 +58,12 @@ DUMMY_KEYWORDS = {
 
 # Threshold values used for filtering models
 SEQUENTIAL_THRESHOLD = 0.75  # % of names that follow a sequential pattern
-DUMMY_WORD_THRESHOLD = 0.82  # % of names that are generic dummy words
+DUMMY_WORD_THRESHOLD = 0.82  # % of names that are util dummy words
 SHORT_DUMMY_WORD_THRESHOLD = 0.3 # % of names that are dummy words shorter than 2 characters
 MIN_MEDIAN_SHORT_NAME_LENGTH = 4  # Minimum median length for short names
 MIN_NAMES_COUNT = 5  # Minimum number of names per model
 VOCABULARY_UNIQUENESS_THRESHOLD = 3  # Minimum unique words per model
-GENERIC_PATTERN_THRESHOLD_COUNT = 2  # % of names that match a generic pattern
+GENERIC_PATTERN_THRESHOLD_COUNT = 2  # % of names that match a util pattern
 DUMMY_CLASSES_THRESHOLD = 0.5  # % of class names that are dummy classes
 DUMMY_NAMES_THRESHOLD = 0.3  # % of class names that are dummy names
 SHORT_NAMES_UPPER_THRESHOLD = 0.30  # % of names that are shorter than 3 characters

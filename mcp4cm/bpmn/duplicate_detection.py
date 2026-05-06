@@ -8,11 +8,11 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neighbors import radius_neighbors_graph
 from scipy.sparse.csgraph import connected_components
 
-from mcp4cm.generic.utils import join_texts
+from mcp4cm.util.text_util import join_texts
 
 from mcp4cm.bpmn.dataloading import BPMNDataset
 from mcp4cm.bpmn.filtering_patterns import TFIDF_DUPLICATE_THRESHOLD
-from mcp4cm.generic.plotting_util import plot_duplicate_pie_chart
+from mcp4cm.util.plotting_util import plot_duplicate_pie_chart
 
 
 def _generate_tf_idf_matrix(dataset: BPMNDataset, key: str = 'names'):

@@ -3,9 +3,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from mcp4cm.base import Dataset
 import time
-from mcp4cm.generic.filtering_patterns import TFIDF_DUPLICATE_THRESHOLD
-from mcp4cm.generic.plotting_util import plot_duplicate_pie_chart
-from mcp4cm.generic.utils import get_model_text, get_file_hash
+from mcp4cm.filtering_patterns import TFIDF_DUPLICATE_THRESHOLD
+from mcp4cm.util.plotting_util import plot_duplicate_pie_chart
+from mcp4cm.util.text_util import get_file_hash
 from mcp4cm.bpmn.dataloading import BPMNDataset
 from mcp4cm.bpmn.duplicate_detection import detect_duplicates_by_hash as detect_bpmn_duplicates_by_hash, \
     tfidf_near_duplicate_detector as tfidf_bpmn_near_duplicate_detector
@@ -100,7 +100,7 @@ def _detect_duplicates_by_hash(
         if key in ['names', 'names_with_types']:
             content = "\n".join(model.names_with_types if hasattr(model, 'names_with_types') else model.names) + "\n"
         else:
-            content = get_model_text(model, key) + "\n"
+            content = model.get_text(key) + "\n"
             
         file_hash = hash_function(content)
         if file_hash is not None:
@@ -222,7 +222,7 @@ def _tfidf_near_duplicate_detector(
         if key in ['names', 'names_with_types']:
             content = "\n".join(model.names_with_types if hasattr(model, 'names_with_types') else model.names) + "\n"
         else:
-            content = get_model_text(model, key) + "\n"
+            content = model.get_text(key) + "\n"
         text_data.append(content)
         
     print(f"Extracted text data from {len(text_data)} models.")

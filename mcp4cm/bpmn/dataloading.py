@@ -1,8 +1,6 @@
-import ast
 import json
 import os
 
-from pathlib import Path
 from typing import Optional, List
 from enum import Enum
 from ast import literal_eval
@@ -13,9 +11,9 @@ from pydantic import field_validator
 from tqdm.auto import tqdm
 
 from mcp4cm.base import Model, Dataset
-from mcp4cm.bpmn.data_extraction import compute_hash_of_modeldict
 from mcp4cm.bpmn.json_model import reduce_json_model, Shape
 from mcp4cm.utils import create_directories_for_path
+from mcp4cm.generic.utils import get_file_hash
 
 SAM_MODELS_PATH = 'sap_sam_2022/models'
 PROCESSED_MODELS_PATH = 'processed/reduced'
@@ -37,6 +35,7 @@ class BPMNModel(Model):
     """
     name: Optional[str] = None
     names_with_types: Optional[List[str]] = None
+    duplicate_group: Optional[str] = None
 
     def __repr__(self):
         return f"({self.name}, {self.file_path})"
@@ -77,7 +76,7 @@ class BPMNDataset(Dataset):
             index (int): Index of the model to retrieve.
 
         Returns:
-            UMLModel: The UML model at the specified index.
+            BPMNModel: The BPMN model at the specified index.
         """
         model = BPMNModel.model_validate(self.models.iloc[index])
         return model
@@ -109,21 +108,17 @@ class SapSam2022Namespaces(Enum):
     BPMN2 = 'http://b3mn.org/stencilset/bpmn2.0#'
 
 
-def load_names(name: str):
+def _load_names(name: str):
     if not name:
         return None
-    return ast.literal_eval(name)
+    return literal_eval(name)
 
 
 def load_dataset_from_csv(name: str, fp: str) -> BPMNDataset:
-    # models = pd.read_csv(fp, na_filter=False, converters={
-    #    "model_json": lambda x: eval(x, {"__builtins__": None}, {}) if x else None
-    # })
-
     models = pd.read_csv(fp, na_filter=False, converters={
         "model_json": lambda x: reduce_json_model(x) if x is not None else None,
-        "names": lambda x: load_names(x),
-        "names_with_types": lambda x: load_names(x),
+        "names": lambda x: _load_names(x),
+        "names_with_types": lambda x: _load_names(x),
     })
     models.replace("", None, inplace=True)
     return BPMNDataset(name=name, models=models)
@@ -165,7 +160,7 @@ def load_dataset(
         partial_df.drop(columns=['Model JSON'], inplace=True)
 
         partial_df['file_path'] = os.path.join(dataset_path, model_file)
-        partial_df['hash'] = partial_df['model_json'].apply(compute_hash_of_modeldict)
+        partial_df['hash'] = partial_df['model_json'].apply(_compute_hash_of_modeldict)
 
         partial_df['language'] = None
         partial_df['names'] = None
@@ -190,3 +185,7 @@ def load_dataset(
 
     bpmn2_dataset = BPMNDataset(name="sapsam_2022_bpmn2", models=full_dataset)
     return bpmn2_dataset
+
+
+def _compute_hash_of_modeldict(modeldict: dict) -> str:
+    return get_file_hash(json.dumps(modeldict))

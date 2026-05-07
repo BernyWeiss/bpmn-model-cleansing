@@ -1,4 +1,4 @@
-from collections import deque
+from collections import deque, Counter
 from functools import partial
 from typing import List, Dict
 
@@ -27,12 +27,12 @@ def extract_names_from_models(dataset: BPMNDataset,
 
     dataset.models[column] = dataset.models['model_json'].apply(name_extraction)
 
-    print(f"Extracting {column} from raw model done.")
 
 
 def _extract_names_from_shape(model_json: List | Dict,
                               use_types: bool = False,
-                              empty_name_pattern: str = "empty name") -> list[str]:
+                              empty_name_pattern: str = "empty name",
+                              empty_type_pattern: str = "unknown type") -> list[str]:
     bpmn_model_shape = Shape.model_validate(model_json)
     names = list()
     names_with_types = list()
@@ -44,19 +44,21 @@ def _extract_names_from_shape(model_json: List | Dict,
             element = stack.pop()
             for child in element.childShapes:
                 stack.append(child)
+            name = None
+            if element.stencil and element.stencil.id:
+                node_type = element.stencil.id
+            else:
+                node_type = empty_type_pattern
             if element.properties:
-                name = None
                 if element.properties.name:
                     name = element.properties.name.strip()
                     name = name.translate(translation_table)
                 if not name:
                     name = empty_name_pattern
-
-            if element.stencil:
-                if element.stencil.id:
-                    names_with_types.append(f"{element.stencil.id}: {name}")
             else:
-                names_with_types.append(f"unknown type: {name}")
+                name = empty_name_pattern
+
+            names_with_types.append(f"{node_type}: {name}")
         return names_with_types
 
     else:
@@ -64,18 +66,30 @@ def _extract_names_from_shape(model_json: List | Dict,
             element = stack.pop()
             for child in element.childShapes:
                 stack.append(child)
-
+            node_type = (element.stencil and element.stencil.id) or empty_type_pattern
             if element.properties:
                 name = None
                 if element.properties.name:
                     name = element.properties.name.strip()
                     name = name.translate(translation_table)
                 if not name:
+                    if _type_does_not_need_name(node_type):
+                        # skip if the element might not need to have a name - reduces 'empty name' elements
+                        continue
                     name = empty_name_pattern
                 names.append(name)
             else:
                 names.append(empty_name_pattern)
         return names
+
+def _type_does_not_need_name(node_type: str):
+    if node_type.endswith('Flow'):
+        return True
+    if node_type.endswith('Gateway'):
+        return True
+    if node_type.startswith('Association'):
+        return True
+    return False
 
 
 def extract_model_languages(dataset: BPMNDataset, key: str = 'names', empty_name: str = "empty name"):
@@ -165,6 +179,7 @@ def filter_models_by_empty_name_percentage(
         f"Filtered out models with a empty name percentage higher than {empty_name_percentage}: {n_models_before - len(models)}"
     )
     return BPMNDataset(name=dataset.name, models=models)
+
 
 def filter_models_by_dummy_words(
         dataset: BPMNDataset,

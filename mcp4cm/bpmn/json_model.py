@@ -9,7 +9,8 @@ class Stensil(BaseModel):
 
 class Properties(BaseModel):
     name: Optional[str] = None
-    #documentation: Optional[str] = None
+    documentation: Optional[str] = None
+    text: Optional[str] = None
     #tasktype: Optional[str] = None
     #stakeholder: Optional[str] = None
     #language: Optional[str] = None

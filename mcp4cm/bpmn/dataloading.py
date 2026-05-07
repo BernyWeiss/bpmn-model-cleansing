@@ -2,12 +2,13 @@ import json
 import os
 from pathlib import Path
 
-from typing import Optional, List
+from typing import Optional, List, Any
 from enum import Enum
 from ast import literal_eval
 
 import pandas as pd
 from pydantic import field_validator
+from collections import Counter
 
 from tqdm.auto import tqdm
 
@@ -16,6 +17,7 @@ from mcp4cm.bpmn.json_model import reduce_json_model
 from mcp4cm.util.text_util import get_file_hash
 
 SAM_MODELS_PATH = 'sap_sam_2022/models'
+BPMAI_MODELS_PATH = 'bpmai/models'
 PROCESSED_MODELS_PATH = 'processed/reduced'
 CSV_FIELD_SIZE_LIMIT = 6000000
 BPMN_MODEL_COLUMNS = ['id','name','model_json','file_path','hash','language','names','names_with_types','model_xmi','model_txt','category','tags']
@@ -63,7 +65,7 @@ class BPMNDataset(Dataset):
     @field_validator("models", mode="before")
     def convert_to_df(cls, models: List['BPMNModel'] | pd.DataFrame) -> pd.DataFrame:
         if isinstance(models, list):
-            return pd.DataFrame([model.model_dump() if isinstance(model, BPMNModel) else model for model in models])
+            return pd.DataFrame([model.model_dump(exclude=['duplicate_group']) if isinstance(model, BPMNModel) else model for model in models])
         if isinstance(models, pd.DataFrame):
             return models
         raise TypeError("'models' must be a list of BPMNModels or a pd.DataFrame")
@@ -97,6 +99,9 @@ class BPMNDataset(Dataset):
         models_copy.to_csv(fp, index=False)
 
 
+class BPMAIGroupNames(Enum):
+    BPMN2 = "BPMN2.0_Process"
+
 class SapSam2022Namespaces(Enum):
     """
     Enum for different Namespaces in the sap_sam_2022 dataset.
@@ -123,6 +128,72 @@ def load_dataset_from_csv(name: str, fp: str) -> BPMNDataset:
     models.replace("", None, inplace=True)
     return BPMNDataset(name=name, models=models)
 
+
+def load_bpmai_dataset(
+    dataset_path: str = 'data/bpmnmodelset',
+    groupName: BPMAIGroupNames = BPMAIGroupNames.BPMN2
+) -> BPMNDataset:
+
+    dataset_path = os.path.join(dataset_path, BPMAI_MODELS_PATH)
+
+    files = os.listdir(dataset_path)
+    group_counter = Counter()
+    models = []
+    for file in files:
+        if not file.endswith('.meta.json'):
+            continue
+
+        model_metadata = json.load(open(os.path.join(dataset_path, file), 'r'))
+        group = model_metadata['model']['groupName']
+        group_counter[group] += 1
+        if not group == groupName.value:
+            continue
+
+        id, name, language = _extract_model_metadata(model_metadata)
+
+        file_path = os.path.join(dataset_path, f'{id}.json')
+
+        model_json = _load_model_text(file_path)
+        reduced_model_json = reduce_json_model(model_json)
+        hash = _compute_hash_of_modeldict(reduced_model_json)
+
+        bpmn_model = BPMNModel(
+            id=id,
+            file_path=file_path,
+            hash=hash,
+            language=language,
+            model_json=reduced_model_json,
+            name=name,
+        )
+
+        models.append(bpmn_model)
+
+    print('Groups')
+    print(group_counter)
+
+    print(f'len(models): {len(models)}')
+
+
+    return BPMNDataset(name='BPMAI Dataset', models=models)
+
+
+
+
+
+def _extract_model_metadata(
+        metadata_json: Any
+) -> tuple[str,str,str]:
+
+    id = metadata_json['model']['modelId']
+    name = metadata_json['model']['modelName']
+    language = metadata_json['model']['naturalLanguage']
+
+    return id, name, language
+
+def _load_model_text(fp: str) -> str:
+    with open(fp, 'r') as f:
+        model_text = f.read()
+    return model_text
 
 def load_dataset(
         dataset_path: str = 'data/bpmnmodelset',

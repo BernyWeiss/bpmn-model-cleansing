@@ -92,10 +92,24 @@ def _type_does_not_need_name(node_type: str):
     return False
 
 
-def extract_model_languages(dataset: BPMNDataset, key: str = 'names', empty_name: str = "empty name"):
+def extract_dataset_languages(dataset: BPMNDataset, text_key: str = 'names',
+                              empty_name: str = "empty name", override: bool = False) -> None:
+
+    language_column = 'language'
     tqdm.pandas(desc='Language Extraction Progress')
-    dataset.models['language'] = dataset.models[key].progress_apply(
-        lambda text: _get_text_language(join_texts(text, empty_name=empty_name)))
+
+    if override:
+        dataset.models[language_column] = dataset.models[text_key].progress_apply(
+            lambda text: _get_text_language(join_texts(text, empty_name=empty_name)))
+        return
+
+
+    models_without_language = dataset.models[dataset.models[language_column].isna()]
+    models_without_language[language_column] = models_without_language[text_key].progress_apply(
+        lambda  text: _get_text_language(join_texts(text, empty_name=empty_name)))
+
+    dataset.models.update(models_without_language, join='left', overwrite=True, errors='raise')
+
 
 
 def filter_empty_models(dataset: BPMNDataset, key: str = 'names', inplace: bool = False,

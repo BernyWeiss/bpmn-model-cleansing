@@ -158,12 +158,18 @@ def tfidf_near_duplicate_detector(
 
     print('Creating Duplicate Groups')
 
+    print('Dataset Columns:')
+    print(dataset.models.columns)
+
     duplicate_group_col_name = 'duplicate_group'
     duplicate_group_series = pd.Series(labels, index=model_df_index, name=duplicate_group_col_name)
     duplicate_group_series = duplicate_group_series.loc[duplicate_files_mask]
     duplicate_group_df = pd.merge(dataset.models, duplicate_group_series,
                                   left_index=True, right_index=True,
                                   how='right', validate='one_to_one')
+
+    print('After Merge')
+    print(duplicate_group_df.columns)
 
     total_files_processed = len(dataset)
     unique_file_count = len(indices_of_unique_files)

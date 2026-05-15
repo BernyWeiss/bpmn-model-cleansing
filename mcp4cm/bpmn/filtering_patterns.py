@@ -14,4 +14,16 @@ MAX_ELEMENT_COUNT = 200
 MAX_EMPTY_NAME_PERCENTAGE = 0.5
 DUMMY_WORD_THRESHOLD = 0.6
 
+
+# TODO: convert placeholders into actual pattern to use in filters and name extraction
+ACTIVITY_TYPES = ('Task', '...Subprocess')
+START_EVENT_PATTERN = 'Start...Event'
+END_EVENT_PATTERN = 'End...Event'
+EVENT_PATTERN = '...Event'
+DATA_OBJECT_PATTERN = 'DataObject'
+GATEWAY_PATTERN = '...Gateway'
+FLOW_PATTERN = '...Flow'
+ASSOCIATION_PATTERN = 'Association...'
+
+
 DUMMY_KEYWORDS = ['empty name', 'task', 'pool', 'lane', 'department', 'company']

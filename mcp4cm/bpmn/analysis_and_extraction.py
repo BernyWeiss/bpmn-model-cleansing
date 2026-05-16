@@ -3,8 +3,8 @@ from functools import partial
 from typing import List, Dict
 
 
-from mcp4cm.bpmn.json_model import Shape
-from mcp4cm.bpmn.dataloading import BPMNDataset
+from mcp4cm.bpmn.dataloading.json_model import Shape
+from mcp4cm.bpmn.dataloading.bpmn_dataset import BPMNDataset
 
 from mcp4cm.bpmn.data_extraction import translation_table
 

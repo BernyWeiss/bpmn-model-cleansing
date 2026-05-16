@@ -10,7 +10,7 @@ from scipy.sparse.csgraph import connected_components
 
 from mcp4cm.util.text_util import join_texts
 
-from mcp4cm.bpmn.dataloading import BPMNDataset
+from mcp4cm.bpmn.dataloading.bpmn_dataset import BPMNDataset
 from mcp4cm.bpmn.filtering_patterns import TFIDF_DUPLICATE_THRESHOLD
 from mcp4cm.util.plotting_util import plot_duplicate_pie_chart
 

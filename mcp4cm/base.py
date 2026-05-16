@@ -1,6 +1,6 @@
 from enum import Enum
 from pydantic import BaseModel
-from typing import List, Optional, Union, Dict, Generator
+from typing import List, Optional, Union, Dict
 
 from mcp4cm.util.text_util import join_texts
 

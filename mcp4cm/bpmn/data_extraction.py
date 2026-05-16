@@ -1,4 +1,4 @@
-from collections import deque, Counter
+from collections import deque
 from functools import partial
 from typing import List, Dict
 
@@ -7,8 +7,8 @@ from mcp4cm.bpmn.filtering_patterns import (MIN_ELEMENT_COUNT,
                                             MAX_EMPTY_NAME_PERCENTAGE,
                                             DUMMY_WORD_THRESHOLD,
                                             DUMMY_KEYWORDS)
-from mcp4cm.bpmn.json_model import Shape
-from mcp4cm.bpmn.dataloading import BPMNDataset
+from mcp4cm.bpmn.dataloading.json_model import Shape
+from mcp4cm.bpmn.dataloading.bpmn_dataset import BPMNDataset
 from mcp4cm.util.text_util import join_texts
 from mcp4cm._language_detector import _get_text_language
 from tqdm.auto import tqdm

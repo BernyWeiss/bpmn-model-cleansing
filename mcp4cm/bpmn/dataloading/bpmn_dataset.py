@@ -1,4 +1,7 @@
 import json
+import os
+import shutil
+
 import pandas as pd
 
 from pathlib import Path
@@ -81,15 +84,55 @@ class BPMNDataset(Dataset):
 
     @staticmethod
     def to_csv(dataset: 'BPMNDataset', fp: str):
-        _create_directories_for_path(fp)
+        file_path = Path(fp)
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+
         models_json_series = dataset.models["model_json"].apply(
             lambda model: json.dumps(model) if model is not None else None)
         models_copy = dataset.models.copy(deep=False)
         models_copy['model_json'] = models_json_series
         models_copy.to_csv(fp, index=False)
 
+    @staticmethod
+    def to_files(dataset: 'BPMNDataset', output_directory: str):
+        directory_path = Path(output_directory)
+        directory_path.mkdir(parents=True, exist_ok=True)
 
-def _create_directories_for_path(path: str):
-    file_path = Path(path)
-    directory_path = file_path.parent
-    directory_path.mkdir(parents=True, exist_ok=True)
+        models = dataset.models.copy(deep=False)
+        has_duplicates = models['file_path'].duplicated().any()
+        if has_duplicates:
+            models.sort_values(by=['file_path'], inplace=True)
+        # TODO: Implement export for csv files.
+        # load first csv file
+        # for filepath in model
+        # if filepath != loaded file - load new file
+        # find entry in csv
+        # transform entry (with additional information from model) to json export format
+        # write new file.
+        # write new metadate file
+        #
+        for model_tupel in models.itertuples(index=False, name='BPMNModel'):
+
+            json_file_path = Path(model_tupel.file_path)
+
+            base_path = Path(json_file_path.parent)
+            metadata_file_name = json_file_path.name.replace('.json', '.meta.json')
+
+            metadata_file_path = base_path.joinpath(metadata_file_name)
+
+            if json_file_path.name.endswith('.json'):
+                new_file_path = directory_path.joinpath(json_file_path.name)
+                new_meta_file_path = directory_path.joinpath(metadata_file_path.name)
+                shutil.copy2(json_file_path, new_file_path)
+                shutil.copy2(metadata_file_path, new_meta_file_path)
+
+            if json_file_path.name.endswith('.csv'):
+                # TODO: implement export from csv
+                # Find
+                raise NotImplementedError
+
+
+
+
+
+

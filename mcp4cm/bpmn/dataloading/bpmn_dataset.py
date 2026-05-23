@@ -9,6 +9,7 @@ from typing import Optional, List
 
 from pydantic import field_validator
 from mcp4cm.base import Model, Dataset
+from mcp4cm.bpmn.dataloading.sap_sam import SapSam2022Namespaces, _load_sap_sam_csv_to_df
 
 BPMN_MODEL_COLUMNS = ['id', 'name', 'model_json', 'file_path', 'hash', 'language', 'names', 'names_with_types',
                       'model_xmi', 'model_txt', 'category', 'tags']
@@ -26,6 +27,7 @@ class BPMNModel(Model):
         names_with_types (Optional[List[str]]): Element names with their types
             (e.g., 'class: Customer', 'actor: User', etc.).
     """
+    hash: Optional[str] = None
     name: Optional[str] = None
     names_with_types: Optional[List[str]] = None
     duplicate_group: Optional[str] = None
@@ -102,37 +104,58 @@ class BPMNDataset(Dataset):
         has_duplicates = models['file_path'].duplicated().any()
         if has_duplicates:
             models.sort_values(by=['file_path'], inplace=True)
-        # TODO: Implement export for csv files.
-        # load first csv file
-        # for filepath in model
-        # if filepath != loaded file - load new file
-        # find entry in csv
-        # transform entry (with additional information from model) to json export format
-        # write new file.
-        # write new metadate file
-        #
+
+        current_csv_name = ''
+        current_csv_df = None
+
         for model_tupel in models.itertuples(index=False, name='BPMNModel'):
+            model_path = Path(model_tupel.file_path)
 
-            json_file_path = Path(model_tupel.file_path)
+            if model_path.name.endswith('.json'):
+                json_file_path = model_path
+                base_path = Path(json_file_path.parent)
+                metadata_file_name = json_file_path.name.replace('.json', '.meta.json')
+                metadata_file_path = base_path.joinpath(metadata_file_name)
 
-            base_path = Path(json_file_path.parent)
-            metadata_file_name = json_file_path.name.replace('.json', '.meta.json')
-
-            metadata_file_path = base_path.joinpath(metadata_file_name)
-
-            if json_file_path.name.endswith('.json'):
-                new_file_path = directory_path.joinpath(json_file_path.name)
+                new_model_file_path = directory_path.joinpath(json_file_path.name)
                 new_meta_file_path = directory_path.joinpath(metadata_file_path.name)
-                shutil.copy2(json_file_path, new_file_path)
+                shutil.copy2(json_file_path, new_model_file_path)
                 shutil.copy2(metadata_file_path, new_meta_file_path)
 
-            if json_file_path.name.endswith('.csv'):
-                # TODO: implement export from csv
-                # Find
-                raise NotImplementedError
+                continue
+
+            if model_path.name.endswith('.csv'):
+                csv_file_path = model_path
+
+                if csv_file_path.name != current_csv_name:
+                    current_csv_name = csv_file_path.name
+                    current_csv_df = _load_sap_sam_csv_to_df(model_path,relevant_namespace=SapSam2022Namespaces.BPMN2, cull_json=False)
+
+                # find entry in csv
+                model_df_entry = current_csv_df.loc[model_tupel.id]
+                new_model_file_path = directory_path.joinpath(f"{model_tupel.id}.json")
+                new_meta_file_path = directory_path.joinpath(f"{model_tupel.id}.meta.json")
+
+                # write new file.
+                with open(new_model_file_path, 'w', encoding='utf-8') as json_file:
+                    json_content = json.loads(model_df_entry['model_json'])
+                    json.dump(json_content, json_file, ensure_ascii=False)
+
+
+                full_metadata = {}
+                model_metadata = {}
+
+                model_metadata['modelId'] = model_tupel.id
+                model_metadata['modelName'] = model_tupel.name
+                model_metadata['naturalLanguage'] = model_tupel.language
+
+                full_metadata['model'] = model_metadata
+
+                # TODO: Add saving of metadata file
+
+                with open(new_meta_file_path, 'w', encoding='utf-8') as json_file:
+                    json.dump(full_metadata, json_file, ensure_ascii=False)
 
 
 
-
-
-
+                continue

@@ -116,7 +116,7 @@ def filter_empty_models(dataset: BPMNDataset, key: str = 'names', inplace: bool 
                         empty_name: str = "empty name") -> BPMNDataset:
     empty_models = dataset.models[key].apply(lambda names: all(name == empty_name for name in names))
     non_empty_models = ~empty_models
-    print(f'Found models with empty names: {sum(empty_models)}')
+    print(f'Filtered out models where every element is unnamed: {sum(empty_models)}')
     if inplace:
         dataset.models = dataset.models[non_empty_models]
         return dataset

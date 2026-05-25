@@ -1,5 +1,4 @@
 import json
-import os
 import shutil
 
 import pandas as pd
@@ -96,7 +95,7 @@ class BPMNDataset(Dataset):
         models_copy.to_csv(fp, index=False)
 
     @staticmethod
-    def to_files(dataset: 'BPMNDataset', output_directory: str):
+    def to_files(dataset: 'BPMNDataset', output_directory: str, include_svg: bool = False):
         directory_path = Path(output_directory)
         directory_path.mkdir(parents=True, exist_ok=True)
 
@@ -122,6 +121,12 @@ class BPMNDataset(Dataset):
                 shutil.copy2(json_file_path, new_model_file_path)
                 shutil.copy2(metadata_file_path, new_meta_file_path)
 
+                if include_svg:
+                    svg_file_name = json_file_path.name.replace('.json', '.svg')
+                    svg_file_path = base_path.joinpath(svg_file_name)
+
+                    new_svc_file_path = directory_path.joinpath(svg_file_path.name)
+                    shutil.copy2(svg_file_path, new_svc_file_path)
                 continue
 
             if model_path.name.endswith('.csv'):
@@ -151,11 +156,6 @@ class BPMNDataset(Dataset):
 
                 full_metadata['model'] = model_metadata
 
-                # TODO: Add saving of metadata file
-
                 with open(new_meta_file_path, 'w', encoding='utf-8') as json_file:
                     json.dump(full_metadata, json_file, ensure_ascii=False)
-
-
-
                 continue

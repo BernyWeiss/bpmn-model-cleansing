@@ -2,11 +2,13 @@ from collections import deque
 from functools import partial
 from typing import List, Dict
 
+import numpy as np
+
 from mcp4cm.bpmn.filtering_patterns import (MIN_ELEMENT_COUNT,
                                             MAX_ELEMENT_COUNT,
                                             MAX_EMPTY_NAME_PERCENTAGE,
                                             DUMMY_WORD_THRESHOLD,
-                                            DUMMY_KEYWORDS)
+                                            DUMMY_KEYWORDS, MIN_MEDIAN_NAME_LENGTH)
 from mcp4cm.bpmn.dataloading.json_model import Shape
 from mcp4cm.bpmn.dataloading.bpmn_dataset import BPMNDataset
 from mcp4cm.util.text_util import join_texts
@@ -122,6 +124,84 @@ def filter_empty_models(dataset: BPMNDataset, key: str = 'names', inplace: bool 
         return dataset
     return BPMNDataset(name=dataset.name, models=dataset.models[non_empty_models])
 
+def filter_models_by_min_element_count(
+    dataset: BPMNDataset,
+    min_count: int = MIN_ELEMENT_COUNT,
+    inplace: bool = False,
+) -> BPMNDataset:
+    """
+    Filter models based on the number of named elements they contain.
+
+    This function filters the dataset to include only models that have a name count
+    within the specified range. Models with too few names might be incomplete,
+    while models with too many names might be overly complex or auto-generated.
+
+    Args:
+        dataset (UMLDataset): The dataset to filter.
+        min_count (int): The minimum number of names a model should have. Defaults to 25.
+        inplace (bool): If True, modifies the dataset in-place. If False, returns a new dataset.
+            Defaults to False.
+
+    Returns:
+        UMLDataset: The filtered dataset, either the original dataset modified in-place
+            or a new dataset containing only models with an appropriate number of names.
+
+    Example:
+        >>> filtered_dataset = filter_models_by_name_count(dataset, min_count=50)
+        >>> print(f"Kept {len(filtered_dataset.models)} models with appropriate complexity")
+    """
+    # TODO: Update Documentation
+    n_models_before = len(dataset)
+    models = dataset.models
+
+    models['element_count'] = models['names'].str.len()
+    models.query(f'element_count >= {min_count}', inplace=inplace)
+    models.drop(columns=['element_count'], inplace=True)
+
+    print(
+        f"Filtered out models with element counts smaller than {min_count}: {n_models_before - len(models)}"
+    )
+    return BPMNDataset(name=dataset.name, models=models)
+
+def filter_models_by_max_element_count(
+    dataset: BPMNDataset,
+    max_count: int = MAX_ELEMENT_COUNT,
+    inplace: bool = False,
+) -> BPMNDataset:
+    """
+    Filter models based on the number of named elements they contain.
+
+    This function filters the dataset to include only models that have a name count
+    within the specified range. Models with too few names might be incomplete,
+    while models with too many names might be overly complex or auto-generated.
+
+    Args:
+        dataset (UMLDataset): The dataset to filter.
+        min_count (int): The minimum number of names a model should have. Defaults to 25.
+        inplace (bool): If True, modifies the dataset in-place. If False, returns a new dataset.
+            Defaults to False.
+
+    Returns:
+        UMLDataset: The filtered dataset, either the original dataset modified in-place
+            or a new dataset containing only models with an appropriate number of names.
+
+    Example:
+        >>> filtered_dataset = filter_models_by_name_count(dataset, min_count=50)
+        >>> print(f"Kept {len(filtered_dataset.models)} models with appropriate complexity")
+    """
+    # TODO: Update Documentation
+    n_models_before = len(dataset)
+    models = dataset.models
+
+    models['element_count'] = models['names'].str.len()
+    models.query(f'element_count <= {max_count}', inplace=inplace)
+    models.drop(columns=['element_count'], inplace=True)
+
+    print(
+        f"Filtered out models with element counts greater than {max_count}: {n_models_before - len(models)}"
+    )
+    return BPMNDataset(name=dataset.name, models=models)
+
 def filter_models_by_element_count(
     dataset: BPMNDataset,
     min_count: int = MIN_ELEMENT_COUNT,
@@ -160,7 +240,6 @@ def filter_models_by_element_count(
     print(
         f"Filtered out models with element counts outside of {min_count} and {max_count}: {n_models_before - len(models)}"
     )
-
     return BPMNDataset(name=dataset.name, models=models)
 
 def filter_models_by_empty_name_percentage(
@@ -213,4 +292,17 @@ def filter_models_by_dummy_words(
     print(
         f"Filtered out models with a dummy_percentage higher than {dummy_word_threshold}: {n_models_before - len(models)}"
     )
+    return BPMNDataset(name=dataset.name, models=models)
+
+def filter_models_by_median_name_lengh(
+        dataset: BPMNDataset,
+        min_median_length: int = MIN_MEDIAN_NAME_LENGTH,
+        inplace: bool = False
+) -> BPMNDataset:
+    n_models_before = len(dataset)
+    models = dataset.models
+    models['median_name_lengh'] = models['names'].apply(lambda names: np.median([len(name) for name in names]))
+    models.query(f'median_name_lengh >= {min_median_length}', inplace=inplace)
+    models.drop(columns=['median_name_lengh'], inplace=True)
+    print(f"Filtered out models with a median name length smaller than {min_median_length}: {n_models_before - len(models)}")
     return BPMNDataset(name=dataset.name, models=models)

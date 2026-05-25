@@ -13,6 +13,7 @@ MIN_ELEMENT_COUNT = 5
 MAX_ELEMENT_COUNT = 200
 MAX_EMPTY_NAME_PERCENTAGE = 0.5
 DUMMY_WORD_THRESHOLD = 0.6
+MIN_MEDIAN_NAME_LENGTH = 4
 
 
 # TODO: convert placeholders into actual pattern to use in filters and name extraction

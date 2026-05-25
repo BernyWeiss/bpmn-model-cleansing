@@ -38,8 +38,7 @@ def _load_sap_sam_csv_to_df(file_path: str, relevant_namespace: SapSam2022Namesp
         partial_df.rename(columns={'Model JSON': 'model_json'}, inplace=True)
 
     partial_df['file_path'] = file_path
-    partial_df['hash'] = partial_df['model_json'].apply(lambda model_json: get_file_hash(json.dumps(model_json)))
-
+    partial_df['hash'] = None
     partial_df['language'] = None
     partial_df['names'] = None
     partial_df['names_with_types'] = None

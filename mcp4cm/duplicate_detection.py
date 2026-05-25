@@ -45,7 +45,7 @@ def detect_duplicates_by_hash(
         >>> print(f"Found {len(duplicate_groups)} duplicate groups")
     """
     if isinstance(dataset, BPMNDataset):
-        return detect_bpmn_duplicates_by_hash(dataset, inplace=inplace, plt_fig=plt_fig, print_results=print_results)
+        return detect_bpmn_duplicates_by_hash(dataset,key=key, inplace=inplace, plt_fig=plt_fig, print_results=print_results)
     else:
         return _detect_duplicates_by_hash(dataset,
                                           hash_function=hash_function,

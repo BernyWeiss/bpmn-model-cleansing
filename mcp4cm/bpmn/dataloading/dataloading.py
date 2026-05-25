@@ -113,12 +113,11 @@ def load_bpmai_bpmn(
 
         model_json_str = load_model_text(file_path)
         reduced_model_json = reduce_json_model(model_json_str)
-        hash = get_file_hash(json.dumps(reduced_model_json))
 
         bpmn_model = BPMNModel(
             id=id,
             file_path=file_path,
-            hash=hash,
+            hash=None,
             language=language,
             model_json=reduced_model_json,
             name=name,

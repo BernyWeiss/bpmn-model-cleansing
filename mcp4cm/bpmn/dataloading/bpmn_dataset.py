@@ -3,6 +3,8 @@ import shutil
 
 import pandas as pd
 
+from collections import Counter
+
 from pathlib import Path
 from typing import Optional, List
 
@@ -30,6 +32,7 @@ class BPMNModel(Model):
     name: Optional[str] = None
     names_with_types: Optional[List[str]] = None
     duplicate_group: Optional[str] = None
+    element_counts: Optional[dict] = None
 
     def __repr__(self):
         return f"({self.name}, {self.file_path})"

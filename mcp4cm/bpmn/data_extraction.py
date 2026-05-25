@@ -1,5 +1,5 @@
 import json
-from collections import deque, defaultdict
+from collections import deque, defaultdict, Counter
 from functools import partial
 from typing import List, Dict, Any
 
@@ -28,13 +28,20 @@ def extract_names_from_models(dataset: BPMNDataset,
     if use_types:
         column = 'names_with_types'
 
+    #dataset.models[[column, 'element_counts']] = dataset.models['model_json'].apply(_extract_names_from_shape,
+    #                                   args=(use_types, empty_name_pattern, 'unknown type',
+    #                                         include_texts, include_documentation), result_type='expand')
+
     name_extraction = partial(_extract_names_from_shape,
                               use_types=use_types,
                               empty_name_pattern=empty_name_pattern,
                               include_texts=include_texts,
                               include_documentation=include_documentation)
 
-    dataset.models[column] = dataset.models['model_json'].apply(name_extraction)
+    #dataset.models[[column, 'element_counts']] = dataset.models['model_json'].apply(name_extraction, result_type='expand')
+
+    dataset.models[column], dataset.models['element_counts'] = zip(*dataset.models['model_json'].map(name_extraction))
+
 
 def calculate_model_hashes(dataset: BPMNDataset,
                            key) -> None:
@@ -46,13 +53,14 @@ def _extract_names_from_shape(model_json: List | Dict,
                               empty_name_pattern: str = "empty name",
                               empty_type_pattern: str = "unknown type",
                               include_texts: bool = False,
-                              include_documentation: bool = False) -> list[str]| dict[str, list]:
+                              include_documentation: bool = False,
+                              **_) -> tuple[list[str]|dict[str, list], dict]:
     bpmn_model_shape = Shape.model_validate(model_json)
     names = list()
     names_of_type_dict = defaultdict(list)
 
     stack = deque([bpmn_model_shape])
-
+    counter = Counter()
     while len(stack) > 0:
         element = stack.pop()
         for child in element.childShapes:
@@ -60,17 +68,21 @@ def _extract_names_from_shape(model_json: List | Dict,
 
         node_type, element_texts = _extract_element_node_type_and_texts(element, empty_name_pattern, empty_type_pattern,
                                                                         include_documentation, include_texts, use_types)
+        counter[node_type] += 1
         if use_types:
             names_of_type_dict[node_type].extend(element_texts)
         else:
             names.extend(element_texts)
 
+    counter = dict(counter) # convert to built-in dict to make serialization possible
+
     if use_types:
         for key, names_list in names_of_type_dict.items():
             names_of_type_dict[key] = sorted(names_list)
-        return names_of_type_dict
+            # convert to built-in dict to make serialization possible
+        return (dict(names_of_type_dict), counter)
     else:
-        return sorted(names)
+        return (sorted(names), counter)
 
 
 def _extract_element_node_type_and_texts(element: Shape, empty_name_pattern: str, empty_type_pattern: str,

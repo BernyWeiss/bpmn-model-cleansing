@@ -19,6 +19,8 @@ from mcp4cm.util.plotting_util import plot_duplicate_pie_chart
 
 def _generate_tf_idf_matrix(dataset: BPMNDataset, key: str = 'names'):
 
+    print(f"creating tfidf for {key}")
+
     content_join_partial = partial(join_texts, delim=' ', empty_name=None)
 
     content_series = dataset.models[key].apply(content_join_partial)

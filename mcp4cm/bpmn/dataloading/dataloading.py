@@ -43,6 +43,7 @@ def load_processed_dataset_from_csv(name: str, fp: str) -> BPMNDataset:
         "model_json": lambda x: reduce_json_model(x) if x is not None else None,
         "names": lambda x: load_processed_names(x),
         "names_with_types": lambda x: load_processed_names(x),
+        "element_counts": lambda x: load_processed_names(x),
     })
     models.replace("", None, inplace=True)
     return BPMNDataset(name=name, models=models)

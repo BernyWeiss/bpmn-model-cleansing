@@ -9,10 +9,13 @@ def join_texts(text, delim: str = ' ', empty_name: str | None = None) -> str:
             text = [expression for expression in text if expression != empty_name]
         text = f'{delim}'.join(text)
     elif isinstance(text, dict):
-        text_values = text.values()
+        flat_texts = [
+            text for list_or_str in text.values()
+            for text in (list_or_str if isinstance(list_or_str, list) else [list_or_str])
+        ]
         if empty_name:
-            text_values = [expression for expression in text if expression != empty_name]
-        text = f'{delim}'.join(text_values)
+            flat_texts = [expression for expression in flat_texts if expression != empty_name]
+        text = f'{delim}'.join(flat_texts)
     return text
 
 

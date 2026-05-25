@@ -30,7 +30,7 @@ class BPMNModel(Model):
     """
     hash: Optional[str] = None
     name: Optional[str] = None
-    names_with_types: Optional[List[str]] = None
+    names_with_types: Optional[dict] = None
     duplicate_group: Optional[str] = None
     element_counts: Optional[dict] = None
 

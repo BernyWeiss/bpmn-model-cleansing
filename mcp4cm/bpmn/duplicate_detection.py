@@ -25,6 +25,10 @@ def _generate_tf_idf_matrix(dataset: BPMNDataset, key: str = 'names'):
 
     content_series = dataset.models[key].apply(content_join_partial)
 
+    if key == 'names_with_types':
+        types_series = dataset.models['element_counts'].apply(lambda x: join_texts(list(Counter(x).elements())))
+        content_series = pd.Series([' '.join(texts) for texts in zip(content_series, types_series)], index=content_series.index)
+
     vectorizer = TfidfVectorizer()
     tf_idf_matrix = vectorizer.fit_transform(content_series)
     return content_series, tf_idf_matrix
@@ -52,7 +56,7 @@ def detect_duplicates_by_hash(
 
     Returns:
         tuple: A tuple containing:
-            - BPMNDataset: A BPMNDataset containing all unqiue models
+            - BPMNDataset: A BPMNDataset containing all unique models
             - BPMNDataset: A BPMNDataset containing all duplicate models, hash can be used to determine duplicate groups.
 
     Example:

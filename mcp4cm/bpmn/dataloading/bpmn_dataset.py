@@ -151,13 +151,20 @@ class BPMNDataset(Dataset):
 
 
                 full_metadata = {}
-                model_metadata = {}
 
+                model_metadata = {}
                 model_metadata['modelId'] = model_tupel.id
                 model_metadata['modelName'] = model_tupel.name
+                model_metadata['modelingLanguage'] = 'bpmn20'
+                model_metadata['groupName'] = 'BPMN2.0_Process'
                 model_metadata['naturalLanguage'] = model_tupel.language
 
+                revision_metadata = {}
+                revision_metadata['elementCounts'] = model_tupel.element_counts
+                revision_metadata['elementCounts']['total'] = sum(model_tupel.element_counts.values())
+
                 full_metadata['model'] = model_metadata
+                full_metadata['revision'] = revision_metadata
 
                 with open(new_meta_file_path, 'w', encoding='utf-8') as json_file:
                     json.dump(full_metadata, json_file, ensure_ascii=False)

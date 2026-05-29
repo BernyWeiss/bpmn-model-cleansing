@@ -46,7 +46,7 @@ def load_dataset(
             raise ValueError("BPMNModelCollection must be provided.")
         return load_bpmn_dataset(path,
                                  model_collection=bpmn_model_collection,
-                                 reduced_size=False)
+                                 reduced_size=True)
     else:
         raise ValueError(f"Unknown dataset type: {dataset_type}")
     

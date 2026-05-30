@@ -2,7 +2,7 @@ from collections import defaultdict
 
 
 from mcp4cm.base import Dataset, Model
-from mcp4cm.bpmn.dataloading import BPMNDataset
+from mcp4cm.bpmn.dataloading.bpmn_dataset import BPMNDataset
 from mcp4cm._language_detector import _get_text_language, _initialize_language_detector_seed
 from mcp4cm.bpmn.language_detection import filter_models_by_language as filter_bpmn_models_by_language
 from mcp4cm.bpmn.data_extraction import extract_dataset_languages as extract_bpmn_dataset_languages

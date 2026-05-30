@@ -1,6 +1,8 @@
+from typing import Optional
+
 from mcp4cm.uml.dataloading import load_dataset as load_uml_dataset
 from mcp4cm.archimate.dataloading import load_dataset as load_archimate_dataset
-from mcp4cm.bpmn.dataloading import load_dataset as load_bpmn_dataset
+from mcp4cm.bpmn.dataloading.dataloading import load_bpmn_dataset, BPMNModelCollection
 from mcp4cm.base import DatasetType, Dataset
 
 
@@ -8,6 +10,7 @@ def load_dataset(
     dataset_type: str, 
     path: str = 'data/modelset',
     uml_type: str = 'genmymodel',
+    bpmn_model_collection: Optional[BPMNModelCollection] = None,
     language_csv_path: str = 'categories_uml.csv'
 ) -> Dataset:
     """
@@ -39,7 +42,11 @@ def load_dataset(
     elif dataset_type == DatasetType.EAMODELSET:
         return load_archimate_dataset(path)
     elif dataset_type == DatasetType.BPMNMODELSET:
-        return load_bpmn_dataset(path, reduced_size=True)
+        if bpmn_model_collection is None:
+            raise ValueError("BPMNModelCollection must be provided.")
+        return load_bpmn_dataset(path,
+                                 model_collection=bpmn_model_collection,
+                                 reduced_size=True)
     else:
         raise ValueError(f"Unknown dataset type: {dataset_type}")
     

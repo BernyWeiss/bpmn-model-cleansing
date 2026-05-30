@@ -6,7 +6,7 @@ import time
 from mcp4cm.filtering_patterns import TFIDF_DUPLICATE_THRESHOLD
 from mcp4cm.util.plotting_util import plot_duplicate_pie_chart
 from mcp4cm.util.text_util import get_file_hash
-from mcp4cm.bpmn.dataloading import BPMNDataset
+from mcp4cm.bpmn.dataloading.bpmn_dataset import BPMNDataset
 from mcp4cm.bpmn.duplicate_detection import detect_duplicates_by_hash as detect_bpmn_duplicates_by_hash, \
     tfidf_near_duplicate_detector as tfidf_bpmn_near_duplicate_detector
 from mcp4cm.uml.dataloading import UMLDataset
@@ -45,7 +45,7 @@ def detect_duplicates_by_hash(
         >>> print(f"Found {len(duplicate_groups)} duplicate groups")
     """
     if isinstance(dataset, BPMNDataset):
-        return detect_bpmn_duplicates_by_hash(dataset, inplace=inplace, plt_fig=plt_fig, print_results=print_results)
+        return detect_bpmn_duplicates_by_hash(dataset,key=key, inplace=inplace, plt_fig=plt_fig, print_results=print_results)
     else:
         return _detect_duplicates_by_hash(dataset,
                                           hash_function=hash_function,

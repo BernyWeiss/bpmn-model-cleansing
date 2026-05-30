@@ -1,25 +1,33 @@
 import time
+import pandas as pd
+
 
 from collections import Counter
 from functools import partial
 
-import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neighbors import radius_neighbors_graph
 from scipy.sparse.csgraph import connected_components
 
+from bpmn.data_extraction import calculate_model_hashes
 from mcp4cm.util.text_util import join_texts
 
-from mcp4cm.bpmn.dataloading import BPMNDataset
+from mcp4cm.bpmn.dataloading.bpmn_dataset import BPMNDataset
 from mcp4cm.bpmn.filtering_patterns import TFIDF_DUPLICATE_THRESHOLD
 from mcp4cm.util.plotting_util import plot_duplicate_pie_chart
 
 
 def _generate_tf_idf_matrix(dataset: BPMNDataset, key: str = 'names'):
 
+    print(f"creating tfidf for {key}")
+
     content_join_partial = partial(join_texts, delim=' ', empty_name=None)
 
     content_series = dataset.models[key].apply(content_join_partial)
+
+    if key == 'names_with_types':
+        types_series = dataset.models['element_counts'].apply(lambda x: join_texts(list(Counter(x).elements())))
+        content_series = pd.Series([' '.join(texts) for texts in zip(content_series, types_series)], index=content_series.index)
 
     vectorizer = TfidfVectorizer()
     tf_idf_matrix = vectorizer.fit_transform(content_series)
@@ -28,6 +36,7 @@ def _generate_tf_idf_matrix(dataset: BPMNDataset, key: str = 'names'):
 
 def detect_duplicates_by_hash(
         dataset: BPMNDataset,
+        key: str = 'names',
         inplace: bool = False,
         plt_fig: bool = False,
         print_results: bool = False
@@ -47,7 +56,7 @@ def detect_duplicates_by_hash(
 
     Returns:
         tuple: A tuple containing:
-            - BPMNDataset: A BPMNDataset containing all unqiue models
+            - BPMNDataset: A BPMNDataset containing all unique models
             - BPMNDataset: A BPMNDataset containing all duplicate models, hash can be used to determine duplicate groups.
 
     Example:
@@ -55,6 +64,8 @@ def detect_duplicates_by_hash(
         >>> print(f"Found {len(duplicate_groups)} duplicate groups")
     """
     starttime = time.time()
+
+    calculate_model_hashes(dataset, key=key)
 
     duplicated_mask = dataset.models.duplicated(subset=['hash'], keep=False)
 
@@ -72,7 +83,7 @@ def detect_duplicates_by_hash(
 
     if print_results:
         print("\n=== Dataset Statistics ===")
-        print(f"Duplicate Detection on already computed hashes took {end_time - starttime:.2f} seconds.")
+        print(f"Hash calculation and duplicate detection took {end_time - starttime:.2f} seconds.")
         print(f"Total number of models: {total_number_of_models}")
         print(f"Total unique files: {unique_model_count}")
         print(f"Total duplicate files: {duplicate_count}")
@@ -158,8 +169,6 @@ def tfidf_near_duplicate_detector(
 
     print('Creating Duplicate Groups')
 
-    print('Dataset Columns:')
-    print(dataset.models.columns)
 
     duplicate_group_col_name = 'duplicate_group'
     duplicate_group_series = pd.Series(labels, index=model_df_index, name=duplicate_group_col_name)
@@ -168,8 +177,6 @@ def tfidf_near_duplicate_detector(
                                   left_index=True, right_index=True,
                                   how='right', validate='one_to_one')
 
-    print('After Merge')
-    print(duplicate_group_df.columns)
 
     total_files_processed = len(dataset)
     unique_file_count = len(indices_of_unique_files)

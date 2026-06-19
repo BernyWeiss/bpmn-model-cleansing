@@ -29,10 +29,30 @@ def extract_names_from_models(dataset: BPMNDataset,
 
     dataset.models[column], dataset.models['element_counts'] = zip(*dataset.models['model_json'].map(name_extraction))
 
+def _combine_name_and_count_dicts(name_dict: dict, type_counter: dict) -> dict:
+    combined_dict = {}
+
+    for name, count in type_counter.items():
+        names = []
+        if name in name_dict:
+            names = name_dict[name]
+
+        combined_dict[name] = {'count': count, 'names': names}
+
+    return combined_dict
+
+
 
 def calculate_model_hashes(dataset: BPMNDataset,
                            key) -> None:
-    dataset.models['hash'] = dataset.models[key].apply(lambda texts: get_file_hash(json.dumps(texts, sort_keys=True)))
+    if key == 'names':
+        dataset.models['hash'] = dataset.models[key].apply(lambda texts: get_file_hash(json.dumps(texts)))
+    elif key == 'names_with_types':
+        full_representation = dataset.models[key].combine(dataset.models['element_counts'], _combine_name_and_count_dicts)
+        dataset.models['hash'] = full_representation.apply(lambda texts: get_file_hash(json.dumps(texts, sort_keys=True)))
+    else:
+        raise ValueError(f"Unknown key {key}")
+
 
 
 def _extract_names_from_shape(model_json: List | Dict,

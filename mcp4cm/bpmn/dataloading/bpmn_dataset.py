@@ -87,6 +87,13 @@ class BPMNDataset(Dataset):
             yield BPMNModel.model_validate(model_dict)
 
     @staticmethod
+    def get_names_key(use_types: bool) -> str:
+        if use_types:
+            return 'names_with_types'
+        else:
+            return 'names'
+
+    @staticmethod
     def to_csv(dataset: 'BPMNDataset', fp: str):
         file_path = Path(fp)
         file_path.parent.mkdir(parents=True, exist_ok=True)

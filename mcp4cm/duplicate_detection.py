@@ -11,6 +11,7 @@ from mcp4cm.bpmn.duplicate_detection import detect_duplicates_by_hash as detect_
     tfidf_near_duplicate_detector as tfidf_bpmn_near_duplicate_detector
 from mcp4cm.uml.dataloading import UMLDataset
 
+#TODO: add keep one parameter
 
 def detect_duplicates_by_hash(
     dataset: Dataset,
@@ -18,7 +19,8 @@ def detect_duplicates_by_hash(
     key: str = 'names',
     inplace: bool = False,
     plt_fig: bool = False,
-    print_results: bool = True
+    print_results: bool = True,
+    keep_one: bool = False
 ):
     """
     Detect duplicate models based on their hash values.
@@ -34,6 +36,9 @@ def detect_duplicates_by_hash(
         inplace (bool): If True, removes duplicates from the dataset. Defaults to False.
         plt_fig (bool): If True, displays a pie chart of unique vs. duplicate files. Defaults to False.
         print_results (bool): If True, prints statistics about unique and duplicate files in the Dataset. Defaults to True.
+        keep_one (bool): If True, keeps one representative of each duplicate group in the unique dataset;
+            removes this representative from duplicate dataset. Only implemented for BPMNDatasets. Defaults to False
+
 
     Returns:
         tuple: A tuple containing:
@@ -45,7 +50,12 @@ def detect_duplicates_by_hash(
         >>> print(f"Found {len(duplicate_groups)} duplicate groups")
     """
     if isinstance(dataset, BPMNDataset):
-        return detect_bpmn_duplicates_by_hash(dataset,key=key, inplace=inplace, plt_fig=plt_fig, print_results=print_results)
+        return detect_bpmn_duplicates_by_hash(dataset,
+                                              key=key,
+                                              inplace=inplace,
+                                              plt_fig=plt_fig,
+                                              print_results=print_results,
+                                              keep_one=keep_one)
     else:
         return _detect_duplicates_by_hash(dataset,
                                           hash_function=hash_function,
@@ -142,7 +152,8 @@ def tfidf_near_duplicate_detector(
         threshold: float = TFIDF_DUPLICATE_THRESHOLD,
         inplace: bool = False,
         plt_fig: bool = False,
-        print_results: bool = True
+        print_results: bool = True,
+        keep_one: bool = False
 ):
     """
     Detect near-duplicate models based on TF-IDF vectorization and cosine similarity.
@@ -159,6 +170,9 @@ def tfidf_near_duplicate_detector(
         inplace (bool): If True, removes near-duplicates from the dataset. Defaults to False.
         plt_fig (bool): If True, displays a pie chart of unique vs. near-duplicate files. Defaults to False.
         print_results (bool): If True, prints statistics about unique and duplicate files in the Dataset. Defaults to True.
+        keep_one (bool): If True, keeps one representative of each duplicate group in the unique dataset;
+            removes this representative from duplicate dataset; Representative is chosen by similarity to group centroid.
+            Only implemented for BPMNDatasets. Defaults to False
 
     Returns:
         tuple: A tuple containing:
@@ -173,7 +187,8 @@ def tfidf_near_duplicate_detector(
     if isinstance(dataset, BPMNDataset):
         return tfidf_bpmn_near_duplicate_detector(dataset, key=key,
                                             threshold=threshold, inplace=inplace,
-                                            plt_fig=plt_fig, print_results=print_results)
+                                            plt_fig=plt_fig, print_results=print_results,
+                                                  keep_one=keep_one)
     else:
         return _tfidf_near_duplicate_detector(dataset, key=key,
                                               threshold=threshold, inplace=inplace,

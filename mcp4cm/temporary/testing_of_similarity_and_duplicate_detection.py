@@ -6,20 +6,6 @@ from sklearn.neighbors import radius_neighbors_graph
 from scipy.sparse.csgraph import connected_components
 from collections import Counter
 
-from mcp4cm.temporary.scratch_1 import unique_indices
-
-#a = np.array([1,1,0])
-#b = np.array([0,1,1])
-#c = np.array([1,1,1])
-
-#matrix = cosine_similarity([a,c,b])
-#print(matrix)
-
-#x = np.average([a,b], axis=0)
-#print(x)
-#y = np.average([x,c],weights=[2,1], axis=0)
-#print (y)
-
 
 doc1 = 'Hello'
 doc2 = 'Hello Good Morning'
@@ -34,12 +20,6 @@ content_series = pd.Series(text_data)
 tfidf = TfidfVectorizer()
 
 features = tfidf.fit_transform(content_series)
-
-print('TF-IDF Features:')
-print(features)
-
-
-cosine_similarity = cosine_similarity(features)
 
 print('Cosine Similarity:')
 print(cosine_similarity)
@@ -67,8 +47,6 @@ counts = Counter(labels)
 u, index, inverse, np_counts = np.unique(labels,return_index=True,return_inverse=True, return_counts=True)
 
 print(counts)
-
-print(f'Unique files {len(unique_indices)}')
 
 print(np_counts)
 

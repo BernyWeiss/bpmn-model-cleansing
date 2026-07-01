@@ -82,7 +82,7 @@ def load_sap_sam_bpmn(
 
         if reduced_size:
             n_files_processed += 1
-            if n_files_processed > 1:
+            if n_files_processed > 5:
                 break
 
     full_dataset.reset_index(drop=False, inplace=True, names='id')

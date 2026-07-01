@@ -7,13 +7,11 @@ MAX_ELEMENT_COUNT = 200
 MAX_EMPTY_NAME_PERCENTAGE = 0.35
 DUMMY_WORD_THRESHOLD = 0.6
 MIN_MEDIAN_NAME_LENGTH = 3
-DUPLICATE_ACTIVITY_NAME_THRESHOLD = 0.4 # If 10 percent or more activities have duplicate names, most likely bad model
+DUPLICATE_ACTIVITY_NAME_THRESHOLD = 0.4 # If 40% or more activities have duplicate names, most likely bad model
                                         # rule of best practice: do not name multiple activities with the same name
 
 MINIMAL_ELEMENTS_DICT = {'Activity': 1, 'StartEvent': 1, 'EndEvent': 1, 'SequenceFlow': 2}
 
-
-# TODO: convert placeholders into actual pattern to use in filters and name extraction
 START_EVENT_PATTERN = re.compile(r"^Start\w*Event$")
 END_EVENT_PATTERN = re.compile(r"^End\w*Event$")
 EVENT_PATTERN = re.compile(r"^\w*Event$")
@@ -29,4 +27,5 @@ EMPTY_NAME_PATTERN = re.compile(r"^empty name$")
 
 
 
-DUMMY_KEYWORDS = ['empty name', 'task', 'pool', 'lane', 'department', 'company', 'activity', 'start', 'end']
+DUMMY_KEYWORDS = {'task', 'pool', 'lane', 'department', 'company', 'activity', 'start', 'end'}
+

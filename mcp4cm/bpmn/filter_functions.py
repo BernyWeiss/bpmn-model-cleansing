@@ -230,20 +230,46 @@ def _calculate_typed_empty_name_counts(names_with_types_dict: dict, empty_name: 
     return count
 
 
+
+
+def _calculate_typed_dummy_name_percentage(names_with_types_dict: dict[str, list[str]], dummy_names: set[str]) -> float:
+    element_count = 0
+    dummy_word_count = 0
+
+    for _, names in names_with_types_dict.items():
+        for name in names:
+            element_count += 1
+            if name.casefold() in dummy_names:
+                dummy_word_count += 1
+
+    if element_count == 0:
+        return 1
+
+    return dummy_word_count / element_count
+
 def filter_models_by_dummy_words(
         dataset: BPMNDataset,
-        dummy_keywords: List[str] = DUMMY_KEYWORDS,
+        dummy_keywords: set[str] = DUMMY_KEYWORDS,
         dummy_word_threshold: float = DUMMY_WORD_THRESHOLD,
         inplace: bool = False,
 ) -> BPMNDataset:
+    result_column_name = 'dummy_percentage'
     n_models_before = len(dataset)
+    extracted_name_column = _get_extracted_name_column(dataset)
     models = dataset.models
-    models['element_count'] = models['names'].str.len()
-    models['dummy_word_count'] = models['names'].apply(lambda names: sum([1 for name in names if name.lower() in dummy_keywords]))
-    models['dummy_percentage'] = models['dummy_word_count'] / models['element_count']
-    models.query(f'dummy_percentage <= {dummy_word_threshold}', inplace=inplace)
 
-    models.drop(columns=['element_count','dummy_word_count','dummy_percentage'], inplace=True)
+    if extracted_name_column == 'names':
+        models['element_count'] = models[extracted_name_column].str.len()
+        models['dummy_word_count'] = models[extracted_name_column].apply(lambda names: sum([1 for name in names if name.casefold() in dummy_keywords]))
+        models[result_column_name] = models['dummy_word_count'] / models['element_count']
+        models.query(f'{result_column_name} <= {dummy_word_threshold}', inplace=inplace)
+        models.drop(columns=['element_count', 'dummy_word_count', result_column_name], inplace=True)
+
+    if extracted_name_column == 'names_with_types':
+        dummy_percentage_extraction_fn = partial(_calculate_typed_dummy_name_percentage, dummy_names=DUMMY_KEYWORDS)
+        models[result_column_name] = models[extracted_name_column].apply(dummy_percentage_extraction_fn)
+        models.query(f'{result_column_name} <= {dummy_word_threshold}', inplace=inplace)
+        models.drop(columns=[result_column_name], inplace=True)
 
     print(
         f"Filtered out models with a dummy_percentage higher than {dummy_word_threshold}: {n_models_before - len(models)}"

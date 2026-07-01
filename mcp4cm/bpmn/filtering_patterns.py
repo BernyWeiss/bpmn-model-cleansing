@@ -23,6 +23,7 @@ ASSOCIATION_PATTERN = re.compile(r"Association\w*$")
 TASK_PATTERN = re.compile(r"^Task\w*$")
 SUBPROCESS_PATTERN = re.compile(r"^\w*Subprocess$")
 ACTIVITY_PATTERN = re.compile(r"^Task|\w*Subprocess$")
+SWIMLANE_PATTERN = re.compile(r"^\w*Pool|\w*Lane$") # [Collapsed][Vertical]Pool or [Vertical]Lane
 EMPTY_NAME_PATTERN = re.compile(r"^empty name$")
 
 

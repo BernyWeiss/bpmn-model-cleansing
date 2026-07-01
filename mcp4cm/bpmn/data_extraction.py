@@ -3,8 +3,10 @@ from collections import deque, defaultdict, Counter
 from functools import partial
 from typing import List, Dict, Any
 
+from bpmn.filtering_patterns import SWIMLANE_PATTERN
 from mcp4cm.bpmn.dataloading.json_model import Shape
 from mcp4cm.bpmn.dataloading.bpmn_dataset import BPMNDataset
+from mcp4cm.bpmn.filtering_patterns import ACTIVITY_PATTERN, DATA_OBJECT_PATTERN, EVENT_PATTERN
 from mcp4cm.util.text_util import join_texts, get_file_hash
 from mcp4cm._language_detector import _get_text_language
 from tqdm.auto import tqdm
@@ -137,13 +139,20 @@ def _replace_linebreaks_and_strip(string: str) -> str:
 
 
 def _type_should_have_name(node_type: str) -> bool:
-    if node_type.endswith('Flow'):
-        return False
-    if node_type.endswith('Gateway'):
-        return False
-    if node_type.startswith('Association'):
-        return False
-    return True
+    match = ACTIVITY_PATTERN.fullmatch(node_type)
+    if match is not None:
+        return True
+    match = EVENT_PATTERN.fullmatch(node_type)
+    if match is not None:
+        return True
+    match = DATA_OBJECT_PATTERN.fullmatch(node_type)
+    if match is not None:
+        return True
+    match = SWIMLANE_PATTERN.fullmatch(node_type)
+    if match is not None:
+        return True
+
+    return False
 
 
 def extract_dataset_languages(dataset: BPMNDataset, text_key: str = 'names',

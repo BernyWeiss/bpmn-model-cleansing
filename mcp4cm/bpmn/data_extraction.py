@@ -109,10 +109,9 @@ def _extract_element_node_type_and_texts(element: Shape, empty_name_pattern: str
     if element.properties:
         if element.properties.name:
             name = _replace_linebreaks_and_strip(element.properties.name)
-
             if use_types or _type_should_have_name(node_type):
-                name = name or empty_name_pattern
-
+                if not name:
+                    name = name or empty_name_pattern
             if name:
                 element_texts.append(name)
 
@@ -120,9 +119,9 @@ def _extract_element_node_type_and_texts(element: Shape, empty_name_pattern: str
             if element.properties.text:
                 text = _replace_linebreaks_and_strip(element.properties.text)
                 text = f"text: {text}" if text else None
-
             if text:
                 element_texts.append(text)
+
         if include_documentation:
             if element.properties.documentation:
                 documentation = _replace_linebreaks_and_strip(element.properties.documentation)

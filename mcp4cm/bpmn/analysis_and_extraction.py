@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from wordcloud import WordCloud
 
+from bpmn.constants import NAMES_COLUMN, NAMES_WITH_TYPES_COLUMN, ELEMENT_COUNTS_COLUMN, EMPTY_NAME_TOKEN
 from mcp4cm.bpmn.dataloading.json_model import Shape
 from mcp4cm.bpmn.dataloading.bpmn_dataset import BPMNDataset
 from mcp4cm.bpmn.filter_functions import _get_extracted_name_column
@@ -22,13 +23,13 @@ from mcp4cm.bpmn.filtering_patterns import (ACTIVITY_PATTERN,
 
 
 
-def get_all_names(dataset: BPMNDataset, key: str = 'names', casefold: bool = False) -> Iterable[str]:
+def get_all_names(dataset: BPMNDataset, key: str = NAMES_COLUMN, casefold: bool = False) -> Iterable[str]:
     text_series = dataset.models[key].explode(ignore_index=True).dropna()
     if casefold:
         text_series = text_series.str.casefold()
     return text_series
 
-def get_counts(dataset: BPMNDataset, key: str = 'names', casefold: bool = False):
+def get_counts(dataset: BPMNDataset, key: str = NAMES_COLUMN, casefold: bool = False):
 
     text_series = get_all_names(dataset, key, casefold)
 
@@ -43,9 +44,9 @@ def get_counts(dataset: BPMNDataset, key: str = 'names', casefold: bool = False)
 def extract_names_from_models(dataset: BPMNDataset,
                               use_types: bool = False,
                               empty_name_pattern: str = "empty name") -> None:
-    column = 'names'
+    column = NAMES_COLUMN
     if use_types:
-        column = 'names_with_types'
+        column = NAMES_WITH_TYPES_COLUMN
     empty_counter = Counter()
     set_counter = Counter()
     text_counter = Counter()
@@ -167,7 +168,7 @@ def create_wordcloud(counts):
 
 def print_all_types(dataset: BPMNDataset):
     models = dataset.models
-    models['types'] = models['element_counts'].apply(lambda counts_dict: counts_dict.keys())
+    models['types'] = models[ELEMENT_COUNTS_COLUMN].apply(lambda counts_dict: counts_dict.keys())
     all_types = models['types'].explode(ignore_index=True).unique()
     print(all_types.tolist())
 
@@ -188,10 +189,10 @@ def extract_required_counts(dataset: BPMNDataset):
     end_event_extraction = partial(_extract_count_of_pattern, pattern=END_EVENT_PATTERN)
     sequence_flow_extraction = partial(_extract_count_of_pattern, pattern=SEQUENCE_FLOW_PATTERN)
 
-    models['n_activities'] = models['element_counts'].apply(activity_extraction)
-    models['n_start_events'] = models['element_counts'].apply(start_event_extraction)
-    models['n_end_events'] = models['element_counts'].apply(end_event_extraction)
-    models['n_sequence_flows'] = models['element_counts'].apply(sequence_flow_extraction)
+    models['n_activities'] = models[ELEMENT_COUNTS_COLUMN].apply(activity_extraction)
+    models['n_start_events'] = models[ELEMENT_COUNTS_COLUMN].apply(start_event_extraction)
+    models['n_end_events'] = models[ELEMENT_COUNTS_COLUMN].apply(end_event_extraction)
+    models['n_sequence_flows'] = models[ELEMENT_COUNTS_COLUMN].apply(sequence_flow_extraction)
 
 def _validate_minimal_elements(row):
     valid_activities = row['n_activities'] >= 1
@@ -214,7 +215,7 @@ def check_minimal_model_elements(dataset: BPMNDataset):
     print(f"Valid models: {valid_models}")
     print(f"Invalid models: {invalid_models}")
 
-def _extract_names_of_pattern(names_with_types: dict, pattern: re.Pattern, empty_name: str = 'empty name'):
+def _extract_names_of_pattern(names_with_types: dict, pattern: re.Pattern, empty_name: str = EMPTY_NAME_TOKEN):
     relevant_names = []
     for key in names_with_types.keys():
         match = pattern.fullmatch(key)
@@ -238,13 +239,13 @@ def _calculate_activity_name_duplicates(name_type_dict: dict[str, list[str]]) ->
 
 def analyse_duplicate_activity_names(dataset: BPMNDataset):
     name_column = _get_extracted_name_column(dataset)
-    if not name_column == 'names_with_types':
+    if not name_column == NAMES_WITH_TYPES_COLUMN:
         raise ValueError("This analysis can only be done if name and types were extracted.")
     models = dataset.models
 
     name_duplicate_calculation = partial(_calculate_activity_name_duplicates)
 
-    models['duplicate_activity_names'] = models['names_with_types'].apply(name_duplicate_calculation)
+    models['duplicate_activity_names'] = models[NAMES_WITH_TYPES_COLUMN].apply(name_duplicate_calculation)
 
     over_threshold = sum(models['duplicate_activity_names'] >= 0.4)
     all_models = len(models['duplicate_activity_names'])

@@ -3,7 +3,10 @@ from collections import deque, defaultdict, Counter
 from functools import partial
 from typing import List, Dict, Any
 
+from bpmn.constants import LANGUAGE_COLUMN
 from bpmn.filtering_patterns import SWIMLANE_PATTERN
+
+from mcp4cm.bpmn.constants import EMPTY_NAME_TOKEN, EMPTY_TYPE_TOKEN, NAMES_COLUMN, NAMES_WITH_TYPES_COLUMN, ELEMENT_COUNTS_COLUMN, HASH_COLUMN
 from mcp4cm.bpmn.dataloading.json_model import Shape
 from mcp4cm.bpmn.dataloading.bpmn_dataset import BPMNDataset
 from mcp4cm.bpmn.filtering_patterns import ACTIVITY_PATTERN, DATA_OBJECT_PATTERN, EVENT_PATTERN
@@ -16,12 +19,12 @@ translation_table = str.maketrans({'\n': ' '})
 
 def extract_names_from_models(dataset: BPMNDataset,
                               use_types: bool = False,
-                              empty_name_pattern: str = "empty name",
+                              empty_name_pattern: str = EMPTY_NAME_TOKEN,
                               include_texts: bool = False,
                               include_documentation: bool = False) -> None:
-    column = 'names'
+    column = NAMES_COLUMN
     if use_types:
-        column = 'names_with_types'
+        column = NAMES_WITH_TYPES_COLUMN
 
     name_extraction = partial(_extract_names_from_shape,
                               use_types=use_types,
@@ -29,7 +32,7 @@ def extract_names_from_models(dataset: BPMNDataset,
                               include_texts=include_texts,
                               include_documentation=include_documentation)
 
-    dataset.models[column], dataset.models['element_counts'] = zip(*dataset.models['model_json'].map(name_extraction))
+    dataset.models[column], dataset.models[ELEMENT_COUNTS_COLUMN] = zip(*dataset.models['model_json'].map(name_extraction))
 
 def _combine_name_and_count_dicts(name_dict: dict, type_counter: dict) -> dict:
     combined_dict = {}
@@ -44,14 +47,13 @@ def _combine_name_and_count_dicts(name_dict: dict, type_counter: dict) -> dict:
     return combined_dict
 
 
-
 def calculate_model_hashes(dataset: BPMNDataset,
                            key) -> None:
-    if key == 'names':
-        dataset.models['hash'] = dataset.models[key].apply(lambda texts: get_file_hash(json.dumps(texts)))
-    elif key == 'names_with_types':
-        full_representation = dataset.models[key].combine(dataset.models['element_counts'], _combine_name_and_count_dicts)
-        dataset.models['hash'] = full_representation.apply(lambda texts: get_file_hash(json.dumps(texts, sort_keys=True)))
+    if key == NAMES_COLUMN:
+        dataset.models[HASH_COLUMN] = dataset.models[key].apply(lambda texts: get_file_hash(json.dumps(texts)))
+    elif key == NAMES_WITH_TYPES_COLUMN:
+        full_representation = dataset.models[key].combine(dataset.models[ELEMENT_COUNTS_COLUMN], _combine_name_and_count_dicts)
+        dataset.models[HASH_COLUMN] = full_representation.apply(lambda texts: get_file_hash(json.dumps(texts, sort_keys=True)))
     else:
         raise ValueError(f"Unknown key {key}")
 
@@ -59,8 +61,8 @@ def calculate_model_hashes(dataset: BPMNDataset,
 
 def _extract_names_from_shape(model_json: List | Dict,
                               use_types: bool = False,
-                              empty_name_pattern: str = "empty name",
-                              empty_type_pattern: str = "unknown type",
+                              empty_name_pattern: str = EMPTY_NAME_TOKEN,
+                              empty_type_pattern: str = EMPTY_TYPE_TOKEN,
                               include_texts: bool = False,
                               include_documentation: bool = False,
                               **_) -> tuple[list[str]|dict[str, list], dict]:
@@ -154,20 +156,19 @@ def _type_should_have_name(node_type: str) -> bool:
     return False
 
 
-def extract_dataset_languages(dataset: BPMNDataset, text_key: str = 'names',
-                              empty_name: str = "empty name", override: bool = False) -> None:
+def extract_dataset_languages(dataset: BPMNDataset, text_key: str = NAMES_COLUMN,
+                              empty_name: str = EMPTY_NAME_TOKEN, override: bool = False) -> None:
 
-    language_column = 'language'
     tqdm.pandas(desc='Language Extraction Progress')
 
     if override:
-        dataset.models[language_column] = dataset.models[text_key].progress_apply(
+        dataset.models[LANGUAGE_COLUMN] = dataset.models[text_key].progress_apply(
             lambda text: _get_text_language(join_texts(text, empty_name=empty_name)))
         return
 
 
-    models_without_language = dataset.models[dataset.models[language_column].isna()]
-    models_without_language[language_column] = models_without_language[text_key].progress_apply(
+    models_without_language = dataset.models[dataset.models[LANGUAGE_COLUMN].isna()]
+    models_without_language[LANGUAGE_COLUMN] = models_without_language[text_key].progress_apply(
         lambda  text: _get_text_language(join_texts(text, empty_name=empty_name)))
 
     dataset.models.update(models_without_language, join='left', overwrite=True, errors='raise')

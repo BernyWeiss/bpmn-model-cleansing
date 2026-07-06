@@ -5,6 +5,7 @@ from typing import List
 import numpy as np
 import pandas as pd
 
+from bpmn.constants import EMPTY_NAME_TOKEN, NAMES_WITH_TYPES_COLUMN, NAMES_COLUMN, ELEMENT_COUNTS_COLUMN
 from bpmn.dataloading.bpmn_dataset import BPMNDataset
 from bpmn.filtering_patterns import MIN_ELEMENT_COUNT, MAX_ELEMENT_COUNT, MAX_EMPTY_NAME_PERCENTAGE, DUMMY_KEYWORDS, \
     DUMMY_WORD_THRESHOLD, MIN_MEDIAN_NAME_LENGTH, MINIMAL_ELEMENTS_DICT, DUPLICATE_ACTIVITY_NAME_THRESHOLD
@@ -17,14 +18,14 @@ from bpmn.filtering_patterns import (ACTIVITY_PATTERN,
 
 def filter_empty_models(dataset: BPMNDataset,
                         inplace: bool = False,
-                        empty_name: str = "empty name") -> BPMNDataset:
+                        empty_name: str = EMPTY_NAME_TOKEN) -> BPMNDataset:
 
     extracted_name_column = _get_extracted_name_column(dataset)
 
-    if extracted_name_column == 'names_with_types':
+    if extracted_name_column == NAMES_WITH_TYPES_COLUMN:
         empty_models = dataset.models[extracted_name_column].apply(lambda type_names_dict: all(name == empty_name for names in type_names_dict.values() for name in names ))
 
-    if extracted_name_column == 'names':
+    if extracted_name_column == NAMES_COLUMN:
         empty_models = dataset.models[extracted_name_column].apply(lambda names: all(name == empty_name for name in names))
 
     non_empty_models = ~empty_models
@@ -36,7 +37,7 @@ def filter_empty_models(dataset: BPMNDataset,
 
 
 def _get_extracted_name_column(dataset: BPMNDataset) -> str:
-    filled_name_col = 'names_with_types' if dataset.models['names_with_types'].notna().any() else 'names'
+    filled_name_col = NAMES_WITH_TYPES_COLUMN if dataset.models[NAMES_WITH_TYPES_COLUMN].notna().any() else NAMES_COLUMN
     return filled_name_col
 
 
@@ -71,7 +72,7 @@ def filter_models_by_min_element_count(
     models = dataset.models
     total_count_col_name = 'total_element_count'
 
-    models[total_count_col_name] = models['element_counts'].apply(_calculate_total_element_count)
+    models[total_count_col_name] = models[ELEMENT_COUNTS_COLUMN].apply(_calculate_total_element_count)
 
     models.query(f'{total_count_col_name} >= {min_count}', inplace=inplace)
     models.drop(columns=[total_count_col_name], inplace=True)
@@ -115,7 +116,7 @@ def filter_models_by_max_element_count(
     models = dataset.models
     total_count_col_name = 'total_element_count'
 
-    models[total_count_col_name] = models['element_counts'].apply(_calculate_total_element_count)
+    models[total_count_col_name] = models[ELEMENT_COUNTS_COLUMN].apply(_calculate_total_element_count)
 
     models.query(f'{total_count_col_name} <= {max_count}', inplace=inplace)
     models.drop(columns=[total_count_col_name], inplace=True)
@@ -159,7 +160,7 @@ def filter_models_by_element_count(
     models = dataset.models
     total_count_col_name = 'total_element_count'
 
-    models[total_count_col_name] = models['element_counts'].apply(_calculate_total_element_count)
+    models[total_count_col_name] = models[ELEMENT_COUNTS_COLUMN].apply(_calculate_total_element_count)
 
     models.query(f'{total_count_col_name} >= {min_count} and {total_count_col_name} <= {max_count}', inplace=inplace)
 
@@ -174,7 +175,7 @@ def filter_models_by_element_count(
 def filter_models_by_empty_name_percentage(
         dataset: BPMNDataset,
         empty_name_percentage: float = MAX_EMPTY_NAME_PERCENTAGE,
-        empty_name: str = "empty name",
+        empty_name: str = EMPTY_NAME_TOKEN,
         inplace: bool = False,
 ) -> BPMNDataset:
     """
@@ -192,16 +193,16 @@ def filter_models_by_empty_name_percentage(
     extracted_name_column = _get_extracted_name_column(dataset)
     models = dataset.models
 
-    if extracted_name_column == 'names':
-        models['name_count'] = models['names'].str.len()
-        models['empty_name_count'] = models['names'].apply(
+    if extracted_name_column == NAMES_COLUMN:
+        models['name_count'] = models[NAMES_COLUMN].str.len()
+        models['empty_name_count'] = models[NAMES_COLUMN].apply(
             lambda names: len([name for name in names if name == empty_name]))
 
 
-    if extracted_name_column == 'names_with_types':
+    if extracted_name_column == NAMES_WITH_TYPES_COLUMN:
 
-        models['name_count'] = models['names_with_types'].apply(_calculate_typed_name_count)
-        models['empty_name_count'] = models['names_with_types'].apply(_calculate_typed_empty_name_counts, empty_name=empty_name)
+        models['name_count'] = models[NAMES_WITH_TYPES_COLUMN].apply(_calculate_typed_name_count)
+        models['empty_name_count'] = models[NAMES_WITH_TYPES_COLUMN].apply(_calculate_typed_empty_name_counts, empty_name=empty_name)
 
 
     models['empty_name_percentage'] = models['empty_name_count'] / models['name_count']
@@ -253,19 +254,21 @@ def filter_models_by_dummy_words(
         dummy_word_threshold: float = DUMMY_WORD_THRESHOLD,
         inplace: bool = False,
 ) -> BPMNDataset:
+    name_count_column = 'name_count'
+    dummy_word_count_column = 'dummy_word_count'
     result_column_name = 'dummy_percentage'
     n_models_before = len(dataset)
     extracted_name_column = _get_extracted_name_column(dataset)
     models = dataset.models
 
-    if extracted_name_column == 'names':
-        models['element_count'] = models[extracted_name_column].str.len()
-        models['dummy_word_count'] = models[extracted_name_column].apply(lambda names: sum([1 for name in names if name.casefold() in dummy_keywords]))
-        models[result_column_name] = models['dummy_word_count'] / models['element_count']
+    if extracted_name_column == NAMES_COLUMN:
+        models[name_count_column] = models[extracted_name_column].str.len()
+        models[dummy_word_count_column] = models[extracted_name_column].apply(lambda names: sum([1 for name in names if name.casefold() in dummy_keywords]))
+        models[result_column_name] = models[dummy_word_count_column] / models[name_count_column]
         models.query(f'{result_column_name} <= {dummy_word_threshold}', inplace=inplace)
-        models.drop(columns=['element_count', 'dummy_word_count', result_column_name], inplace=True)
+        models.drop(columns=[name_count_column, dummy_word_count_column, result_column_name], inplace=True)
 
-    if extracted_name_column == 'names_with_types':
+    if extracted_name_column == NAMES_WITH_TYPES_COLUMN:
         dummy_percentage_extraction_fn = partial(_calculate_typed_dummy_name_percentage, dummy_names=DUMMY_KEYWORDS)
         models[result_column_name] = models[extracted_name_column].apply(dummy_percentage_extraction_fn)
         models.query(f'{result_column_name} <= {dummy_word_threshold}', inplace=inplace)
@@ -287,10 +290,10 @@ def filter_models_by_median_name_length(
     extracted_name_column = _get_extracted_name_column(dataset)
     models = dataset.models
 
-    if extracted_name_column == 'names':
+    if extracted_name_column == NAMES_COLUMN:
         models['median_name_length'] = models[extracted_name_column].apply(lambda names: np.median([len(name) for name in names]))
 
-    if extracted_name_column == 'names_with_types':
+    if extracted_name_column == NAMES_WITH_TYPES_COLUMN:
         models['median_name_length'] = models[extracted_name_column].apply(_calculate_typed_median_name_length)
 
 
@@ -335,10 +338,10 @@ def filter_models_by_required_elements(
     end_event_extraction = partial(_extract_count_of_pattern, pattern=END_EVENT_PATTERN)
     sequence_flow_extraction = partial(_extract_count_of_pattern, pattern=SEQUENCE_FLOW_PATTERN)
 
-    models['n_activities'] = models['element_counts'].apply(activity_extraction)
-    models['n_start_events'] = models['element_counts'].apply(start_event_extraction)
-    models['n_end_events'] = models['element_counts'].apply(end_event_extraction)
-    models['n_sequence_flows'] = models['element_counts'].apply(sequence_flow_extraction)
+    models['n_activities'] = models[ELEMENT_COUNTS_COLUMN].apply(activity_extraction)
+    models['n_start_events'] = models[ELEMENT_COUNTS_COLUMN].apply(start_event_extraction)
+    models['n_end_events'] = models[ELEMENT_COUNTS_COLUMN].apply(end_event_extraction)
+    models['n_sequence_flows'] = models[ELEMENT_COUNTS_COLUMN].apply(sequence_flow_extraction)
 
     minimal_element_validation = partial(_validate_minimal_elements, min_counts=minimal_elements_dict)
     models['has_minimal_elements'] = models.apply(minimal_element_validation, axis=1)
@@ -353,7 +356,7 @@ def filter_models_by_required_elements(
     print(f"Filtered out models which do not have minimally required elements: {invalid_models}")
     return BPMNDataset(name=dataset.name, models=models)
 
-def _extract_names_of_pattern(names_with_types: dict, pattern: re.Pattern, empty_name: str = 'empty name'):
+def _extract_names_of_pattern(names_with_types: dict, pattern: re.Pattern, empty_name: str = EMPTY_NAME_TOKEN):
     relevant_names = []
     for key in names_with_types.keys():
         match = pattern.fullmatch(key)
@@ -381,13 +384,13 @@ def filter_models_by_duplicate_activities(
         inplace: bool = False
 ) -> BPMNDataset:
     name_column = _get_extracted_name_column(dataset)
-    if not name_column == 'names_with_types':
+    if not name_column == NAMES_WITH_TYPES_COLUMN:
         raise ValueError("This analysis can only be done if name and types were extracted.")
     models = dataset.models
 
     name_duplicate_calculation = partial(_calculate_activity_name_duplicates)
 
-    models['duplicate_activity_names_percentage'] = models['names_with_types'].apply(name_duplicate_calculation)
+    models['duplicate_activity_names_percentage'] = models[NAMES_WITH_TYPES_COLUMN].apply(name_duplicate_calculation)
 
     n_models_before = len(models['duplicate_activity_names_percentage'])
     models.query(f'duplicate_activity_names_percentage <= {duplicate_activity_threshold}', inplace=inplace)

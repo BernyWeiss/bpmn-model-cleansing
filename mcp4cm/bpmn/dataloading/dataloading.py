@@ -7,6 +7,7 @@ from enum import Enum
 from ast import literal_eval
 from tqdm.asyncio import tqdm
 
+from bpmn.constants import NAMES_COLUMN, NAMES_WITH_TYPES_COLUMN, ELEMENT_COUNTS_COLUMN
 from mcp4cm.bpmn.dataloading.bpmai import BPMN_PROCESS_GROUP_NAME, extract_model_metadata, \
     load_model_text
 from mcp4cm.bpmn.dataloading.bpmn_dataset import BPMNDataset, BPMNModel
@@ -41,9 +42,9 @@ def load_processed_dataset_from_csv(name: str, fp: str) -> BPMNDataset:
 
     models = pd.read_csv(fp, na_filter=False, converters={
         "model_json": lambda x: reduce_json_model(x) if x is not None else None,
-        "names": lambda x: load_processed_names(x),
-        "names_with_types": lambda x: load_processed_names(x),
-        "element_counts": lambda x: load_processed_names(x),
+        NAMES_COLUMN: lambda x: load_processed_names(x),
+        NAMES_WITH_TYPES_COLUMN: lambda x: load_processed_names(x),
+        ELEMENT_COUNTS_COLUMN: lambda x: load_processed_names(x),
     })
     models.replace("", None, inplace=True)
     return BPMNDataset(name=name, models=models)

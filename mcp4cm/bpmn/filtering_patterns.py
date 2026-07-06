@@ -1,4 +1,5 @@
 import re
+from mcp4cm.bpmn.constants import EMPTY_NAME_TOKEN
 
 # Threshold for near-duplicate detection
 TFIDF_DUPLICATE_THRESHOLD = 0.8  # Threshold for TF-IDF similarity (0.0-1.0)
@@ -24,9 +25,7 @@ TASK_PATTERN = re.compile(r"^Task\w*$")
 SUBPROCESS_PATTERN = re.compile(r"^\w*Subprocess$")
 ACTIVITY_PATTERN = re.compile(r"^Task|\w*Subprocess$")
 SWIMLANE_PATTERN = re.compile(r"^\w*Pool|\w*Lane$") # [Collapsed][Vertical]Pool or [Vertical]Lane
-EMPTY_NAME_PATTERN = re.compile(r"^empty name$")
-
-
+EMPTY_NAME_PATTERN = re.compile(r"^{}$".format(EMPTY_NAME_TOKEN))
 
 DUMMY_KEYWORDS = {'task', 'pool', 'lane', 'department', 'company', 'activity', 'start', 'end'}
 

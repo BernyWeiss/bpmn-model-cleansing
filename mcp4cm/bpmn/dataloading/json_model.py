@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, AliasChoices, field_validator
 from typing import List, Optional, Any
 
 
@@ -10,9 +10,16 @@ class Properties(BaseModel):
     name: Optional[str] = None
     documentation: Optional[str] = None
     text: Optional[str] = None
+    callactivity: Optional[bool] = Field(default=None, validation_alias=AliasChoices('callactivity', 'callacitivity'))
     # tasktype: Optional[str] = None
     # stakeholder: Optional[str] = None
     # language: Optional[str] = None
+
+    @field_validator("callactivity", mode="before")
+    def convert_empty_str_to_none(cls, value: str) -> str|None:
+        if value == '':
+            return None
+        return value
 
 
 class ShapeReference(BaseModel):

@@ -12,6 +12,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from scipy.sparse.csgraph import connected_components
 
+from bpmn.constants import NAMES_COLUMN, NAMES_WITH_TYPES_COLUMN, ELEMENT_COUNTS_COLUMN, HASH_COLUMN
 from bpmn.data_extraction import calculate_model_hashes
 from mcp4cm.util.text_util import join_texts
 
@@ -20,7 +21,7 @@ from mcp4cm.bpmn.filtering_patterns import TFIDF_DUPLICATE_THRESHOLD
 from mcp4cm.util.plotting_util import plot_duplicate_pie_chart
 
 
-def _generate_tf_idf_matrix(dataset: BPMNDataset, key: str = 'names'):
+def _generate_tf_idf_matrix(dataset: BPMNDataset, key: str = NAMES_COLUMN):
 
     print(f"creating tfidf for {key}")
 
@@ -28,8 +29,8 @@ def _generate_tf_idf_matrix(dataset: BPMNDataset, key: str = 'names'):
 
     content_series = dataset.models[key].apply(content_join_partial)
 
-    if key == 'names_with_types':
-        types_series = dataset.models['element_counts'].apply(lambda x: join_texts(list(Counter(x).elements())))
+    if key == NAMES_WITH_TYPES_COLUMN:
+        types_series = dataset.models[ELEMENT_COUNTS_COLUMN].apply(lambda x: join_texts(list(Counter(x).elements())))
         content_series = pd.Series([' '.join(texts) for texts in zip(content_series, types_series)], index=content_series.index)
 
     vectorizer = TfidfVectorizer()
@@ -39,7 +40,7 @@ def _generate_tf_idf_matrix(dataset: BPMNDataset, key: str = 'names'):
 
 def detect_duplicates_by_hash(
         dataset: BPMNDataset,
-        key: str = 'names',
+        key: str = NAMES_COLUMN,
         inplace: bool = False,
         plt_fig: bool = False,
         print_results: bool = False,
@@ -74,12 +75,12 @@ def detect_duplicates_by_hash(
 
     calculate_model_hashes(dataset, key=key)
 
-    duplicated_mask = dataset.models.duplicated(subset=['hash'], keep=False)
+    duplicated_mask = dataset.models.duplicated(subset=[HASH_COLUMN], keep=False)
 
     unique_models = dataset.models[~duplicated_mask]
     duplicate_models = dataset.models[duplicated_mask]
 
-    group_mask = duplicate_models.duplicated(subset=['hash'], keep='first')
+    group_mask = duplicate_models.duplicated(subset=[HASH_COLUMN], keep='first')
 
     end_time = time.time()
 
@@ -122,7 +123,7 @@ def detect_duplicates_by_hash(
 
 def tfidf_near_duplicate_detector(
         dataset: BPMNDataset,
-        key='names',
+        key=NAMES_COLUMN,
         threshold: float = TFIDF_DUPLICATE_THRESHOLD,
         inplace: bool = False,
         plt_fig: bool = False,

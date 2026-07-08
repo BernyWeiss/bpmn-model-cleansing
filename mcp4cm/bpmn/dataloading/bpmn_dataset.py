@@ -3,16 +3,16 @@ import shutil
 
 import pandas as pd
 
-from collections import Counter
-
 from pathlib import Path
 from typing import Optional, List
 
 from pydantic import field_validator
+
+from bpmn.constants import HASH_COLUMN, LANGUAGE_COLUMN, NAMES_COLUMN, NAMES_WITH_TYPES_COLUMN
 from mcp4cm.base import Model, Dataset
 from mcp4cm.bpmn.dataloading.sap_sam import SapSam2022Namespaces, _load_sap_sam_csv_to_df
 
-BPMN_MODEL_COLUMNS = ['id', 'name', 'model_json', 'file_path', 'hash', 'language', 'names', 'names_with_types',
+BPMN_MODEL_COLUMNS = ['id', 'name', 'model_json', 'file_path', HASH_COLUMN, LANGUAGE_COLUMN, NAMES_COLUMN, NAMES_WITH_TYPES_COLUMN,
                       'model_xmi', 'model_txt', 'category', 'tags']
 
 
@@ -89,9 +89,9 @@ class BPMNDataset(Dataset):
     @staticmethod
     def get_names_key(use_types: bool) -> str:
         if use_types:
-            return 'names_with_types'
+            return NAMES_WITH_TYPES_COLUMN
         else:
-            return 'names'
+            return NAMES_COLUMN
 
     @staticmethod
     def to_csv(dataset: 'BPMNDataset', fp: str):

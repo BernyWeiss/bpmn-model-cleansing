@@ -11,8 +11,6 @@ from mcp4cm.bpmn.duplicate_detection import detect_duplicates_by_hash as detect_
     tfidf_near_duplicate_detector as tfidf_bpmn_near_duplicate_detector
 from mcp4cm.uml.dataloading import UMLDataset
 
-#TODO: add keep one parameter
-
 def detect_duplicates_by_hash(
     dataset: Dataset,
     hash_function=get_file_hash,

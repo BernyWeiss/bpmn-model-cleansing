@@ -284,6 +284,7 @@ def filter_models_by_dummy_words(
 def filter_models_by_median_name_length(
         dataset: BPMNDataset,
         min_median_length: int = MIN_MEDIAN_NAME_LENGTH,
+        empty_name: str = EMPTY_NAME_TOKEN,
         inplace: bool = False
 ) -> BPMNDataset:
 
@@ -292,7 +293,7 @@ def filter_models_by_median_name_length(
     models = dataset.models
 
     if extracted_name_column == NAMES_COLUMN:
-        models['median_name_length'] = models[extracted_name_column].apply(lambda names: np.median([len(name) for name in names]))
+        models['median_name_length'] = models[extracted_name_column].apply(lambda names: np.median([len(name) for name in names if name != empty_name]))
 
     if extracted_name_column == NAMES_WITH_TYPES_COLUMN:
         models['median_name_length'] = models[extracted_name_column].apply(_calculate_typed_median_name_length)
@@ -304,8 +305,8 @@ def filter_models_by_median_name_length(
     print(f"Filtered out models with a median name length smaller than {min_median_length}: {n_models_before - len(models)}")
     return BPMNDataset(name=dataset.name, models=models)
 
-def _calculate_typed_median_name_length(names_with_types_dict: dict):
-    median_length = np.median([len(name) for name_list in names_with_types_dict.values() for name in name_list])
+def _calculate_typed_median_name_length(names_with_types_dict: dict, empty_name = EMPTY_NAME_TOKEN):
+    median_length = np.median([len(name) for name_list in names_with_types_dict.values() for name in name_list if name != empty_name])
     return median_length
 
 

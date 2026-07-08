@@ -5,8 +5,8 @@ from mcp4cm.bpmn.constants import EMPTY_NAME_TOKEN
 TFIDF_DUPLICATE_THRESHOLD = 0.8  # Threshold for TF-IDF similarity (0.0-1.0)
 MIN_ELEMENT_COUNT = 5
 MAX_ELEMENT_COUNT = 200
-MAX_EMPTY_NAME_PERCENTAGE = 0.35
-DUMMY_WORD_THRESHOLD = 0.6
+MAX_EMPTY_NAME_PERCENTAGE = 0.60
+DUMMY_WORD_THRESHOLD = 0.4
 MIN_MEDIAN_NAME_LENGTH = 3
 DUPLICATE_ACTIVITY_NAME_THRESHOLD = 0.4 # If 40% or more activities have duplicate names, most likely bad model
                                         # rule of best practice: do not name multiple activities with the same name

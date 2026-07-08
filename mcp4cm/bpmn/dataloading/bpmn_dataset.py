@@ -10,7 +10,7 @@ from pydantic import field_validator
 
 from bpmn.constants import HASH_COLUMN, LANGUAGE_COLUMN, NAMES_COLUMN, NAMES_WITH_TYPES_COLUMN, CALL_ACTIVITY_COLUMN
 from mcp4cm.base import Model, Dataset
-from mcp4cm.bpmn.dataloading.sap_sam import SapSam2022Namespaces, _load_sap_sam_csv_to_df
+from mcp4cm.bpmn.dataloading.sap_sam import SAP_SAM_BPMN_NAMESPACE, _load_sap_sam_csv_to_df
 
 BPMN_MODEL_COLUMNS = ['id', 'name', 'model_json', 'file_path', HASH_COLUMN, LANGUAGE_COLUMN, NAMES_COLUMN, NAMES_WITH_TYPES_COLUMN,
                       CALL_ACTIVITY_COLUMN, 'model_xmi', 'model_txt', 'category', 'tags']
@@ -144,7 +144,7 @@ class BPMNDataset(Dataset):
 
                 if csv_file_path.name != current_csv_name:
                     current_csv_name = csv_file_path.name
-                    current_csv_df = _load_sap_sam_csv_to_df(model_path,relevant_namespace=SapSam2022Namespaces.BPMN2, cull_json=False)
+                    current_csv_df = _load_sap_sam_csv_to_df(model_path,relevant_namespace=SAP_SAM_BPMN_NAMESPACE, cull_json=False)
 
                 # find entry in csv
                 model_df_entry = current_csv_df.loc[model_tupel.id]

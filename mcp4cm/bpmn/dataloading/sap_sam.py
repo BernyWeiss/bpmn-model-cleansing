@@ -1,32 +1,17 @@
-import json
 import pandas as pd
 
-from enum import Enum
-
+from typing import Final
 from pandas import DataFrame
 
 from bpmn.constants import HASH_COLUMN, LANGUAGE_COLUMN, NAMES_COLUMN, NAMES_WITH_TYPES_COLUMN
-from mcp4cm.util.text_util import get_file_hash
 from mcp4cm.bpmn.dataloading.json_model import reduce_json_model
 
+SAP_SAM_BPMN_NAMESPACE: Final = 'http://b3mn.org/stencilset/bpmn2.0#'
 
-class SapSam2022Namespaces(Enum):
-    """
-    Enum for different Namespaces in the sap_sam_2022 dataset.
-
-    This enumeration defines all namespaces of the dataset which are supported to load as a dataset.
-
-    Currently only BPMN 2.0 models are supported.
-    """
-    BPMN2 = 'http://b3mn.org/stencilset/bpmn2.0#'
-
-
-def _load_sap_sam_csv_to_df(file_path: str, relevant_namespace: SapSam2022Namespaces, cull_json: bool) -> DataFrame:
+def _load_sap_sam_csv_to_df(file_path: str, relevant_namespace: str, cull_json: bool) -> DataFrame:
     partial_df = pd.read_csv(file_path, dtype={"Namespace": "category"})
 
-    model_type = relevant_namespace.value
-
-    partial_df.query(f'Namespace =="{model_type}"', inplace=True)
+    partial_df.query(f'Namespace =="{relevant_namespace}"', inplace=True)
     partial_df.drop(columns=['Revision ID', 'Organization ID', 'Datetime', 'Description', 'Type', 'Namespace'],
                     inplace=True)
     partial_df.rename(columns={'Model ID': 'id', 'Name': 'name'}, inplace=True)

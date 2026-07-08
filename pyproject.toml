@@ -4,10 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp4cm"
-version = "1.0.4"
+version = "2.0.0"
 description = "A conceptual models dataset cleaning and preprocessing library"
 authors = [
     {name = "Andjela Djelic", email = "andjela.djelic@tuwien.ac.at"},
+    {name = "Bernhard Weissenbach", email = "bernhard.weissenbach@tuwien.ac.at"},
     {name = "Syed Juned Ali", email = "syed.juned.ali@tuwien.ac.at"}
 ]
 

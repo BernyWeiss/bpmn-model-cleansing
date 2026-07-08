@@ -12,8 +12,8 @@ def print_set_differences(original_set, my_set) -> None:
     print(original_set-my_set)
 
 
-original = load_list_as_set("../../data/reproduction/english_models_original.txt")
-mine = load_list_as_set("../../data/reproduction/english_models_generated.txt")
+original = load_list_as_set("../data/reproduction/english_models_original.txt")
+mine = load_list_as_set("../data/reproduction/english_models_generated.txt")
 
 print_set_differences(original, mine)
 

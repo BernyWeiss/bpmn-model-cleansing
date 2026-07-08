@@ -13,11 +13,11 @@ from bpmn.constants import (NAMES_COLUMN,
                             SAM_MODELS_PATH,
                             BPMAI_MODELS_PATH,
                             BASE_BPMN_DATASETS_PATH)
-from mcp4cm.bpmn.dataloading.bpmai import BPMN_PROCESS_GROUP_NAME, extract_model_metadata, \
-    load_model_text
+from mcp4cm.bpmn.dataloading.bpmai import BPMN_PROCESS_GROUP_NAME, _extract_model_metadata, \
+    _load_model_text
 from mcp4cm.bpmn.dataloading.bpmn_dataset import BPMNDataset, BPMNModel
 from mcp4cm.bpmn.dataloading.json_model import reduce_json_model
-from mcp4cm.bpmn.dataloading.sap_sam import SapSam2022Namespaces, _load_sap_sam_csv_to_df
+from mcp4cm.bpmn.dataloading.sap_sam import SAP_SAM_BPMN_NAMESPACE, _load_sap_sam_csv_to_df
 
 
 class BPMNModelCollection(Enum):
@@ -51,7 +51,7 @@ def load_processed_dataset_from_csv(name: str, fp: str) -> BPMNDataset:
 
 def _load_sap_sam_dataset(
         dataset_path: str = BASE_BPMN_DATASETS_PATH,
-        namespace: SapSam2022Namespaces = SapSam2022Namespaces.BPMN2,
+        namespace: str = SAP_SAM_BPMN_NAMESPACE,
         reduced_size: bool = False,
 ) -> BPMNDataset:
 
@@ -100,11 +100,11 @@ def _load_bpmai_dataset(
         if not group == BPMN_PROCESS_GROUP_NAME:
             continue
 
-        id, name, language = extract_model_metadata(model_metadata)
+        id, name, language = _extract_model_metadata(model_metadata)
 
         file_path = os.path.join(path, f'{id}.json')
 
-        model_json_str = load_model_text(file_path)
+        model_json_str = _load_model_text(file_path)
         reduced_model_json = reduce_json_model(model_json_str)
 
         bpmn_model = BPMNModel(

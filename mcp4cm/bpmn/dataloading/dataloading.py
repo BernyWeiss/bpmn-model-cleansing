@@ -7,18 +7,17 @@ from enum import Enum
 from ast import literal_eval
 from tqdm.asyncio import tqdm
 
-from bpmn.constants import NAMES_COLUMN, NAMES_WITH_TYPES_COLUMN, ELEMENT_COUNTS_COLUMN
+from bpmn.constants import (NAMES_COLUMN,
+                            NAMES_WITH_TYPES_COLUMN,
+                            ELEMENT_COUNTS_COLUMN,
+                            SAM_MODELS_PATH,
+                            BPMAI_MODELS_PATH,
+                            BASE_BPMN_DATASETS_PATH)
 from mcp4cm.bpmn.dataloading.bpmai import BPMN_PROCESS_GROUP_NAME, extract_model_metadata, \
     load_model_text
 from mcp4cm.bpmn.dataloading.bpmn_dataset import BPMNDataset, BPMNModel
 from mcp4cm.bpmn.dataloading.json_model import reduce_json_model
 from mcp4cm.bpmn.dataloading.sap_sam import SapSam2022Namespaces, _load_sap_sam_csv_to_df
-from mcp4cm.util.text_util import get_file_hash
-
-PROCESSED_MODELS_PATH = 'processed/reduced'
-SAM_MODELS_PATH = 'sap_sam_2022/models'
-BPMAI_MODELS_PATH = 'bpmai/models'
-
 
 
 class BPMNModelCollection(Enum):
@@ -28,9 +27,9 @@ class BPMNModelCollection(Enum):
 
 def load_bpmn_dataset(path: str, model_collection: BPMNModelCollection, reduced_size: bool) -> BPMNDataset:
     if model_collection.value == BPMNModelCollection.SAP_SAM.value:
-        return load_sap_sam_bpmn(path, reduced_size=reduced_size)
+        return _load_sap_sam_dataset(path, reduced_size=reduced_size)
     if model_collection.value == BPMNModelCollection.BPMAI.value:
-        return load_bpmai_bpmn(path)
+        return _load_bpmai_dataset(path)
     raise ValueError(f"Could not load BPMNDataset: BPMNModelCollection is unknown: {model_collection.value}")
 
 
@@ -50,20 +49,12 @@ def load_processed_dataset_from_csv(name: str, fp: str) -> BPMNDataset:
     return BPMNDataset(name=name, models=models)
 
 
-def load_sap_sam_bpmn(
-        dataset_path: str = 'data/bpmnmodelset',
+def _load_sap_sam_dataset(
+        dataset_path: str = BASE_BPMN_DATASETS_PATH,
         namespace: SapSam2022Namespaces = SapSam2022Namespaces.BPMN2,
         reduced_size: bool = False,
 ) -> BPMNDataset:
-    """
 
-    Args:
-        dataset_path:
-        namespace:
-
-    Returns:
-
-    """
     n_files_processed = 0
 
     dataset_path = os.path.join(dataset_path, SAM_MODELS_PATH)
@@ -93,8 +84,8 @@ def load_sap_sam_bpmn(
     return bpmn2_dataset
 
 
-def load_bpmai_bpmn(
-        path: str = 'data/bpmnmodelset',
+def _load_bpmai_dataset(
+        path: str = BASE_BPMN_DATASETS_PATH,
 ) -> BPMNDataset:
     path = os.path.join(path, BPMAI_MODELS_PATH)
 
@@ -128,5 +119,3 @@ def load_bpmai_bpmn(
         models.append(bpmn_model)
 
     return BPMNDataset(name='BPMAI Dataset', models=models)
-
-

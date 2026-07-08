@@ -25,9 +25,9 @@ class BPMNModelCollection(Enum):
     BPMAI = 'bpmai'
 
 
-def load_bpmn_dataset(path: str, model_collection: BPMNModelCollection, reduced_size: bool) -> BPMNDataset:
+def load_bpmn_dataset(path: str, model_collection: BPMNModelCollection) -> BPMNDataset:
     if model_collection.value == BPMNModelCollection.SAP_SAM.value:
-        return _load_sap_sam_dataset(path, reduced_size=reduced_size)
+        return _load_sap_sam_dataset(path)
     if model_collection.value == BPMNModelCollection.BPMAI.value:
         return _load_bpmai_dataset(path)
     raise ValueError(f"Could not load BPMNDataset: BPMNModelCollection is unknown: {model_collection.value}")
@@ -52,11 +52,7 @@ def load_processed_dataset_from_csv(name: str, fp: str) -> BPMNDataset:
 def _load_sap_sam_dataset(
         dataset_path: str = BASE_BPMN_DATASETS_PATH,
         namespace: str = SAP_SAM_BPMN_NAMESPACE,
-        reduced_size: bool = False,
 ) -> BPMNDataset:
-
-    n_files_processed = 0
-
     dataset_path = os.path.join(dataset_path, SAM_MODELS_PATH)
     full_dataset = None
     for model_file in tqdm(os.listdir(dataset_path), desc=f'Loading SAP SAM Dataset @ {dataset_path}'):
@@ -71,11 +67,6 @@ def _load_sap_sam_dataset(
             full_dataset = partial_df
         else:
             full_dataset = pd.concat([full_dataset, partial_df])
-
-        if reduced_size:
-            n_files_processed += 1
-            if n_files_processed > 5:
-                break
 
     full_dataset.reset_index(drop=False, inplace=True, names='id')
     full_dataset.fillna({'name': ''}, inplace=True)

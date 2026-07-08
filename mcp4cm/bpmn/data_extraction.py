@@ -176,7 +176,7 @@ def extract_dataset_languages(dataset: BPMNDataset, text_key: str = NAMES_COLUMN
     models_without_language[LANGUAGE_COLUMN] = models_without_language[text_key].progress_apply(
         lambda  text: _get_text_language(join_texts(text, empty_name=empty_name)))
 
-    dataset.models.update(models_without_language, join='left', overwrite=True, errors='raise')
+    dataset.models.update(models_without_language, join='left', overwrite=True, errors='ignore')
 
 
 

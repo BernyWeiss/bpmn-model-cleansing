@@ -5,7 +5,8 @@ from typing import List
 import numpy as np
 import pandas as pd
 
-from bpmn.constants import EMPTY_NAME_TOKEN, NAMES_WITH_TYPES_COLUMN, NAMES_COLUMN, ELEMENT_COUNTS_COLUMN
+from bpmn.constants import EMPTY_NAME_TOKEN, NAMES_WITH_TYPES_COLUMN, NAMES_COLUMN, ELEMENT_COUNTS_COLUMN, \
+    CALL_ACTIVITY_COLUMN
 from bpmn.dataloading.bpmn_dataset import BPMNDataset
 from bpmn.filtering_patterns import MIN_ELEMENT_COUNT, MAX_ELEMENT_COUNT, MAX_EMPTY_NAME_PERCENTAGE, DUMMY_KEYWORDS, \
     DUMMY_WORD_THRESHOLD, MIN_MEDIAN_NAME_LENGTH, MINIMAL_ELEMENTS_DICT, DUPLICATE_ACTIVITY_NAME_THRESHOLD
@@ -367,14 +368,18 @@ def _extract_names_of_pattern(names_with_types: dict, pattern: re.Pattern, empty
         relevant_names.extend(names_without_empty)
     return relevant_names
 
-def _calculate_activity_name_duplicates(name_type_dict: dict[str, list[str]]) -> float:
+
+def _calculate_activity_name_duplicates(row) -> float:
+    name_type_dict = row[NAMES_WITH_TYPES_COLUMN]
+    n_call_activities = row[CALL_ACTIVITY_COLUMN]
+
     activity_names = _extract_names_of_pattern(name_type_dict, pattern=ACTIVITY_PATTERN)
     activity_names = pd.Series(activity_names)
     duplicated = activity_names.duplicated(keep=False)
 
     if len(duplicated) == 0:
         return 0.0
-    percentage = sum(duplicated) / len(duplicated)
+    percentage = (sum(duplicated)-n_call_activities) / len(duplicated)
 
     return percentage
 
@@ -390,7 +395,7 @@ def filter_models_by_duplicate_activities(
 
     name_duplicate_calculation = partial(_calculate_activity_name_duplicates)
 
-    models['duplicate_activity_names_percentage'] = models[NAMES_WITH_TYPES_COLUMN].apply(name_duplicate_calculation)
+    models['duplicate_activity_names_percentage'] = models.apply(name_duplicate_calculation, axis=1)
 
     n_models_before = len(models['duplicate_activity_names_percentage'])
     models.query(f'duplicate_activity_names_percentage <= {duplicate_activity_threshold}', inplace=inplace)

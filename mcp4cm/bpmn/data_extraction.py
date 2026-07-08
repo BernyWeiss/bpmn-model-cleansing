@@ -1,9 +1,9 @@
 import json
 from collections import deque, defaultdict, Counter
 from functools import partial
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
-from bpmn.constants import LANGUAGE_COLUMN
+from bpmn.constants import LANGUAGE_COLUMN, CALL_ACTIVITY_COLUMN
 from bpmn.filtering_patterns import SWIMLANE_PATTERN
 
 from mcp4cm.bpmn.constants import EMPTY_NAME_TOKEN, EMPTY_TYPE_TOKEN, NAMES_COLUMN, NAMES_WITH_TYPES_COLUMN, ELEMENT_COUNTS_COLUMN, HASH_COLUMN
@@ -32,7 +32,7 @@ def extract_names_from_models(dataset: BPMNDataset,
                               include_texts=include_texts,
                               include_documentation=include_documentation)
 
-    dataset.models[column], dataset.models[ELEMENT_COUNTS_COLUMN] = zip(*dataset.models['model_json'].map(name_extraction))
+    dataset.models[column], dataset.models[ELEMENT_COUNTS_COLUMN], dataset.models[CALL_ACTIVITY_COLUMN] = zip(*dataset.models['model_json'].map(name_extraction))
 
 def _combine_name_and_count_dicts(name_dict: dict, type_counter: dict) -> dict:
     combined_dict = {}
@@ -58,7 +58,6 @@ def calculate_model_hashes(dataset: BPMNDataset,
         raise ValueError(f"Unknown key {key}")
 
 
-
 def _extract_names_from_shape(model_json: List | Dict,
                               use_types: bool = False,
                               empty_name_pattern: str = EMPTY_NAME_TOKEN,
@@ -69,6 +68,7 @@ def _extract_names_from_shape(model_json: List | Dict,
     bpmn_model_shape = Shape.model_validate(model_json)
     names = list()
     names_of_type_dict = defaultdict(list)
+    n_call_activities = 0
 
     stack = deque([bpmn_model_shape])
     counter = Counter()
@@ -77,11 +77,13 @@ def _extract_names_from_shape(model_json: List | Dict,
         for child in element.childShapes:
             stack.append(child)
 
-        node_type, element_texts = _extract_element_node_type_and_texts(element, empty_name_pattern, empty_type_pattern,
+        node_type, element_texts, is_call_activity = _extract_element_node_type_and_texts(element, empty_name_pattern, empty_type_pattern,
                                                                         include_documentation, include_texts, use_types)
         counter[node_type] += 1
         if use_types:
             names_of_type_dict[node_type].extend(element_texts)
+            if is_call_activity:
+                n_call_activities += 1
         else:
             names.extend(element_texts)
 
@@ -91,21 +93,21 @@ def _extract_names_from_shape(model_json: List | Dict,
         for key, names_list in names_of_type_dict.items():
             names_of_type_dict[key] = sorted(names_list)
             # convert to built-in dict to make serialization possible
-        return (dict(names_of_type_dict), counter)
+        return (dict(names_of_type_dict), counter, n_call_activities)
     else:
-        return (sorted(names), counter)
+        return (sorted(names), counter, None)
 
 
 def _extract_element_node_type_and_texts(element: Shape, empty_name_pattern: str, empty_type_pattern: str,
                                          include_documentation: bool, include_texts: bool, use_types: bool) -> tuple[
-    str, list[Any]]:
+    str, list[Any], Optional[int]]:
 
     if element.stencil and element.stencil.id:
         node_type = element.stencil.id
     else:
         node_type = empty_type_pattern
 
-    name, text, documentation = None, None, None
+    name, text, documentation, is_call_activity = None, None, None, None
 
     element_texts = []
     if element.properties:
@@ -116,6 +118,9 @@ def _extract_element_node_type_and_texts(element: Shape, empty_name_pattern: str
                     name = name or empty_name_pattern
             if name:
                 element_texts.append(name)
+
+        if element.properties.callactivity is not None:
+            is_call_activity = element.properties.callactivity
 
         if include_texts:
             if element.properties.text:
@@ -130,7 +135,7 @@ def _extract_element_node_type_and_texts(element: Shape, empty_name_pattern: str
                 documentation = f"documentation: {documentation}" if documentation else None
             if documentation:
                 element_texts.append(documentation)
-    return node_type, element_texts
+    return node_type, element_texts, is_call_activity
 
 
 def _replace_linebreaks_and_strip(string: str) -> str:

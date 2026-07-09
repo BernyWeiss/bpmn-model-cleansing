@@ -111,11 +111,10 @@ def _extract_element_node_type_and_texts(element: Shape, empty_name_pattern: str
 
     element_texts = []
     if element.properties:
-        if element.properties.name:
+        if element.properties.name is not None:
             name = _replace_linebreaks_and_strip(element.properties.name)
-            if use_types or _type_should_have_name(node_type):
-                if not name:
-                    name = name or empty_name_pattern
+            if not name and _type_should_have_name(node_type):
+                name = empty_name_pattern
             if name:
                 element_texts.append(name)
 

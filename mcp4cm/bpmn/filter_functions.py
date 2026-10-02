@@ -9,7 +9,7 @@ from bpmn.constants import EMPTY_NAME_TOKEN, NAMES_WITH_TYPES_COLUMN, NAMES_COLU
     CALL_ACTIVITY_COLUMN
 from bpmn.dataloading.bpmn_dataset import BPMNDataset
 from bpmn.filtering_patterns import MIN_ELEMENT_COUNT, MAX_ELEMENT_COUNT, MAX_EMPTY_NAME_PERCENTAGE, DUMMY_KEYWORDS, \
-    DUMMY_WORD_THRESHOLD, MIN_MEDIAN_NAME_LENGTH, MINIMAL_ELEMENTS_DICT, DUPLICATE_ACTIVITY_NAME_THRESHOLD
+    DUMMY_WORD_THRESHOLD, MIN_MEDIAN_NAME_LENGTH, DUPLICATE_ACTIVITY_NAME_THRESHOLD, MINIMAL_REQUIRED_ELEMENTS
 
 from bpmn.filtering_patterns import (ACTIVITY_PATTERN,
                                             START_EVENT_PATTERN,
@@ -319,42 +319,49 @@ def _extract_count_of_pattern(counts: dict, pattern: re.Pattern):
         count += counts[key]
     return count
 
-def _validate_minimal_elements(row, min_counts: dict):
-    valid_activities = row['n_activities'] >= min_counts['Activity']
-    valid_start_events = row['n_start_events'] >= min_counts['StartEvent']
-    valid_end_events = row['n_end_events'] >= min_counts['EndEvent']
-    valid_sequence_flows = row['n_sequence_flows'] >= min_counts['SequenceFlow']
+def _check_min_occurrences_of_pattern(count_dict: dict, requirement_dict: dict):
+    pattern = requirement_dict['pattern']
+    min_count = requirement_dict['min_count']
 
-    return valid_activities and valid_start_events and valid_end_events and valid_sequence_flows
+    count_of_pattern = _extract_count_of_pattern(count_dict, pattern)
+
+    return count_of_pattern >= min_count
 
 
 def filter_models_by_required_elements(
         dataset: BPMNDataset,
-        minimal_elements_dict: dict = MINIMAL_ELEMENTS_DICT,
+        requirement_list: list[dict] = MINIMAL_REQUIRED_ELEMENTS,
         inplace: bool = False
 ) -> BPMNDataset:
     models = dataset.models
 
-    activity_extraction = partial(_extract_count_of_pattern, pattern=ACTIVITY_PATTERN)
-    start_event_extraction = partial(_extract_count_of_pattern, pattern=START_EVENT_PATTERN)
-    end_event_extraction = partial(_extract_count_of_pattern, pattern=END_EVENT_PATTERN)
-    sequence_flow_extraction = partial(_extract_count_of_pattern, pattern=SEQUENCE_FLOW_PATTERN)
+    pattern_check_column_prefix = 'count_for_pattern_'
+    pattern_check_idx = 0
+    pattern_check_column_names = []
 
-    models['n_activities'] = models[ELEMENT_COUNTS_COLUMN].apply(activity_extraction)
-    models['n_start_events'] = models[ELEMENT_COUNTS_COLUMN].apply(start_event_extraction)
-    models['n_end_events'] = models[ELEMENT_COUNTS_COLUMN].apply(end_event_extraction)
-    models['n_sequence_flows'] = models[ELEMENT_COUNTS_COLUMN].apply(sequence_flow_extraction)
+    has_minimal_elements_col_name = 'has_minimal_elements'
 
-    minimal_element_validation = partial(_validate_minimal_elements, min_counts=minimal_elements_dict)
-    models['has_minimal_elements'] = models.apply(minimal_element_validation, axis=1)
+    for requirement in requirement_list:
 
-    total_models = len(models['has_minimal_elements'])
-    valid_models = sum(models['has_minimal_elements'])
+        count_check = partial(_check_min_occurrences_of_pattern, requirement_dict=requirement)
+
+        pattern_check_column_name = f"{pattern_check_column_prefix}{pattern_check_idx}"
+        pattern_check_idx += 1
+        pattern_check_column_names.append(pattern_check_column_name)
+
+        models[pattern_check_column_name] = models[ELEMENT_COUNTS_COLUMN].apply(count_check)
+
+
+
+    models[has_minimal_elements_col_name] = models[pattern_check_column_names].all(axis=1)
+    total_models = len(models[has_minimal_elements_col_name])
+    valid_models = sum(models[has_minimal_elements_col_name])
+    models.query(f'{has_minimal_elements_col_name}', inplace=inplace)
+
+    pattern_check_column_names.append(has_minimal_elements_col_name)
+    models.drop(columns=pattern_check_column_names, inplace=True)
+
     invalid_models = total_models - valid_models
-
-    models.query(f'has_minimal_elements', inplace=inplace)
-
-    models.drop(columns=['n_activities', 'n_start_events', 'n_end_events', 'n_sequence_flows', 'has_minimal_elements'], inplace=True)
     print(f"Filtered out models which do not have minimally required elements: {invalid_models}")
     return BPMNDataset(name=dataset.name, models=models)
 

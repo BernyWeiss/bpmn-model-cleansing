@@ -11,8 +11,6 @@ MIN_MEDIAN_NAME_LENGTH = 3
 DUPLICATE_ACTIVITY_NAME_THRESHOLD = 0.4 # If 40% or more activities have duplicate names, most likely bad model
                                         # rule of best practice: do not name multiple activities with the same name
 
-MINIMAL_ELEMENTS_DICT = {'Activity': 1, 'StartEvent': 1, 'EndEvent': 1, 'SequenceFlow': 2}
-
 START_EVENT_PATTERN = re.compile(r"^Start\w*Event$")
 END_EVENT_PATTERN = re.compile(r"^End\w*Event$")
 EVENT_PATTERN = re.compile(r"^\w*Event$")
@@ -26,6 +24,12 @@ SUBPROCESS_PATTERN = re.compile(r"^\w*Subprocess$")
 ACTIVITY_PATTERN = re.compile(r"^Task|\w*Subprocess$")
 SWIMLANE_PATTERN = re.compile(r"^\w*Pool|\w*Lane$") # [Collapsed][Vertical]Pool or [Vertical]Lane
 EMPTY_NAME_PATTERN = re.compile(r"^{}$".format(EMPTY_NAME_TOKEN))
+
+MINIMAL_REQUIRED_ELEMENTS = [
+    {'pattern': ACTIVITY_PATTERN, 'min_count': 1},
+    {'pattern': START_EVENT_PATTERN, 'min_count': 1},
+    {'pattern': END_EVENT_PATTERN, 'min_count': 1},
+    {'pattern': SEQUENCE_FLOW_PATTERN, 'min_count': 2}]
 
 DUMMY_KEYWORDS = {'task', 'pool', 'lane', 'department', 'company', 'activity', 'start', 'end'}
 

@@ -2,11 +2,11 @@
 
 ## Overview
 
-`mcp4cm` is a Python library dedicated to cleaning and processing conceptual modeling datasets. It specifically supports UML and ArchiMate datasets, providing a streamlined workflow for dataset loading, filtering, data extraction, and deduplication.
+`mcp4cm` is a Python library dedicated to cleaning and processing conceptual modeling datasets. It specifically supports UML, ArchiMate and BPMN datasets, providing a streamlined workflow for dataset loading, filtering, data extraction, and deduplication.
 
 ## Key Features
 
-* **Dataset Loading:** Supports UML (`MODELSET`) and ArchiMate (`EAMODELSET`) datasets.
+* **Dataset Loading:** Supports UML (`MODELSET`), ArchiMate (`EAMODELSET`) and BPMN (`BPMNMODELSET`) datasets.
 * **Data Filtering:** Provides comprehensive filters to remove invalid or irrelevant data.
 * **Data Extraction:** Enables detailed analysis of dataset contents, including naming conventions and class structures.
 * **Deduplication:** Offers both exact and near-duplicate detection techniques using hashing and TF-IDF-based approaches.
@@ -33,22 +33,32 @@ pip install -r requirements.txt
 ### Downloading the data
 To use the library, you need to download the datasets. The datasets are not included in the repository due to their size. You can download the zip file of the datasets them from the following drive link:
 - MCP4CM Dataset: [MCP4CM Datasets](https://drive.google.com/file/d/1ZSTQvsim_sCX76qfx86Df3bHDtFM7tR0/view?usp=sharing)
-
 - Unzip the data folder in the root directory of the repository. 
 
 ```
 unzip data.zip
 ```
 
+For BPMN Datasets, download the dataset from the public repository:
+- BPMAI Dataset: [BPMAI Datasets](https://zenodo.org/records/3758705)
+- SAP Signavio Academic Initiative Dataset: [SAP SAM](https://zenodo.org/records/7012043)
+
+
+
 The structure should look like this:
 ```
 mcp4cm/
-├── data/                          # Datasets used in the library
-│   ├── modelset/                 # UML dataset
+├── data/                        # Datasets used in the library
+│   ├── modelset/                # UML dataset
 │   └── eamodelset/              # ArchiMate dataset
+│   └── bpmnmodelset/  
+│       └── bpmai/               # BPMAI dataset              
+│       └── sap_sam_2022/        # SAP SAM dataset      
 │
 ├── dataset_generation.ipynb      # Notebook to generate datasets for reproducibility
 ├── test_mcp4cm.ipynb             # Notebook to test library functionalities
+├── mcp4cm_on_bpmai.ipynb         # Notebook applying library function to BPMAI
+├── mcp4cm_on_sapsam.ipynb        # Notebook applying library function to SAP SAM
 │
 ├── README.md
 ├── Artefact_Eval_Updated_Readme.md ## Due to inability to upload updated documents in easychair, we provide the updated overall artefact readme documentation here.
@@ -56,6 +66,7 @@ mcp4cm/
 ├── requirements.txt
 ├── LICENSE
 
+```
 
 ## Generating dataset for the reproducibility studies given here - 
 Publicly archived on Zenodo [10.5281/zenodo.16285770] (https://zenodo.org/records/16285770)
@@ -79,6 +90,8 @@ from mcp4cm.base import DatasetType
 
 uml_dataset = load_dataset(DatasetType.MODELSET, 'data/modelset')
 archimate_dataset = load_dataset(DatasetType.EAMODELSET, 'data/eamodelset')
+bpmai_dataset = load_dataset(path='data/bpmnmodelset', dataset_type=DatasetType.BPMNMODELSET, bpmn_model_collection=BPMNModelCollection.BPMAI)
+sap_sam_dataset = load_dataset(path='data/bpmnmodelset', dataset_type=DatasetType.BPMNMODELSET, bpmn_model_collection=BPMNModelCollection.SAP_SAM)
 ```
 
 ### Filtering and Data Extraction
@@ -135,6 +148,47 @@ filter_models_by_name_length_or_stopwords(archimate_dataset)
 filter_dummy_names(archimate_dataset)
 ```
 
+#### BPMN Datasets
+
+```python
+
+from mcp4cm.bpmn.data_extraction import (extract_names_from_models)
+from mcp4cm.bpmn.filter_functions import (filter_empty_models, 
+                                          filter_models_by_min_element_count,
+                                          filter_models_by_max_element_count, 
+                                          filter_models_by_element_count, 
+                                          filter_models_by_empty_name_percentage,
+                                          filter_models_by_dummy_words,
+                                          filter_models_by_median_name_length,
+                                          filter_models_by_required_elements, 
+                                          filter_models_by_duplicate_activities)
+from mcp4cm.language_detection import extract_dataset_languages, filter_models_by_language
+from mcp4cm.dataloading import Dataset
+
+
+
+extract_names_from_models(bpmn_dataset, use_types=False, include_texts=True, include_documentation=True)
+extract_dataset_languages(bpmn_dataset, 'names', empty_name='unnamed', override=True )
+
+filter_models_by_language(bpmn_dataset, 'en', 'names',)
+
+Dataset.apply_filters(
+    dataset=bpmn_dataset,
+    filters=[
+        filter_empty_models,
+        filter_models_by_empty_name_percentage,
+        filter_models_by_min_element_count,
+        filter_models_by_required_elements,
+        filter_models_by_dummy_words,
+        filter_models_by_median_name_length,
+        filter_models_by_duplicate_activities
+    ],
+)
+
+
+
+```
+
 ### Deduplication
 
 ```python
@@ -144,11 +198,15 @@ from mcp4cm.duplicate_detection import (
 )
 
 detect_duplicates_by_hash(uml_dataset, plt_fig=True)
+detect_duplicates_by_hash(bpmn_dataset, inplace=True, plt_fig=True, keep_one=True)
 
 # TF-IDF-based near duplicate detection
 tfidf_near_duplicate_detector(uml_dataset, key='names', plt_fig=True)
 tfidf_near_duplicate_detector(archimate_dataset, key='names', plt_fig=True)
 tfidf_near_duplicate_detector(archimate_dataset, key='names_with_layers_and_types', plt_fig=True)
+tfidf_near_duplicate_detector(english_dataset, key='names', threshold=0.95, inplace=True, plt_fig=True, keep_one=True)
+
+
 ```
 
 ## Visualization
@@ -162,4 +220,3 @@ Contributions are welcome. Please fork the repository, create a feature branch, 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-```

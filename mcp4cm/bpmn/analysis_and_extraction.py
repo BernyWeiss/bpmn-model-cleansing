@@ -23,15 +23,19 @@ from mcp4cm.bpmn.filtering_patterns import (ACTIVITY_PATTERN,
 
 
 
-def get_all_names(dataset: BPMNDataset, key: str = NAMES_COLUMN, casefold: bool = False) -> Iterable[str]:
+def get_all_names(dataset: BPMNDataset, key: str = NAMES_COLUMN, casefold: bool = False, exclude_empty: bool = False) -> Iterable[str]:
     text_series = dataset.models[key].explode(ignore_index=True).dropna()
+
+    if exclude_empty:
+        text_series = text_series[text_series!='unnamed']
+
     if casefold:
         text_series = text_series.str.casefold()
     return text_series
 
-def get_counts(dataset: BPMNDataset, key: str = NAMES_COLUMN, casefold: bool = False):
+def get_counts(dataset: BPMNDataset, key: str = NAMES_COLUMN, casefold: bool = False, exclude_empty: bool = False):
 
-    text_series = get_all_names(dataset, key, casefold)
+    text_series = get_all_names(dataset, key, casefold, exclude_empty=exclude_empty)
 
     counts = text_series.value_counts()
 
@@ -161,7 +165,7 @@ def _extract_names_from_shape_with_counts(model_json: List | Dict,
         return names
 
 def create_wordcloud(counts):
-    wordcloud = WordCloud(max_words=500, max_font_size=40, width=600, height=300).generate_from_frequencies(counts)
+    wordcloud = WordCloud(max_words=250, max_font_size=48, width=900, height=450,colormap='Dark2', background_color='white').generate_from_frequencies(counts)
     plt.imshow(wordcloud, interpolation="bilinear")
     plt.axis("off")
 

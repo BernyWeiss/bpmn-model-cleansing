@@ -7,11 +7,11 @@ from mcp4cm.base import DatasetType, Dataset
 
 
 def load_dataset(
-    dataset_type: str, 
-    path: str = 'data/modelset',
-    uml_type: str = 'genmymodel',
-    bpmn_model_collection: Optional[BPMNModelCollection] = None,
-    language_csv_path: str = 'categories_uml.csv'
+        dataset_type: str,
+        path: str = 'data/modelset',
+        uml_type: str = 'genmymodel',
+        bpmn_model_collection: Optional[BPMNModelCollection] = None,
+        language_csv_path: str = 'categories_uml.csv'
 ) -> Dataset:
     """
     Load a dataset based on the dataset type and path.
@@ -44,9 +44,6 @@ def load_dataset(
     elif dataset_type == DatasetType.BPMNMODELSET:
         if bpmn_model_collection is None:
             raise ValueError("BPMNModelCollection must be provided.")
-        return load_bpmn_dataset(path,
-                                 model_collection=bpmn_model_collection,
-                                 reduced_size=False)
+        return load_bpmn_dataset(path, model_collection=bpmn_model_collection)
     else:
         raise ValueError(f"Unknown dataset type: {dataset_type}")
-    
